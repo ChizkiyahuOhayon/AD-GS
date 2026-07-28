@@ -1,0 +1,847 @@
+{
+  "actual_camera_files": {},
+  "closure_condition": "camera centers at training times belong to col(B_AD-GS)",
+  "conclusion": "The orbit is exact in sampled AD-GS parameter space only under the camera-basis closure condition. Otherwise it is an approximate gauge, with a directly measurable residual on cameras.npz.",
+  "gate": {
+    "actual_waymo_closure_audited": false,
+    "arbitrary_camera_motion_is_not_exactly_closed": true,
+    "basis_reproduces_polynomial_motion": true
+  },
+  "gauge_scale": 2.0,
+  "host_position_model": "canonical constant + uniform degree-5 B-spline with floor(N/3) controls + six sine/cosine frequencies",
+  "realization_residual": "abs(1-lambda) * (I-P_B) * camera_center",
+  "synthetic": {
+    "scene006": {
+      "polynomial_ego_motion": {
+        "basis": {
+          "bspline_control_count": 28,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 41
+        },
+        "camera_fit_held_out": {
+          "max_m": 1.0521586605231461e-11,
+          "median_m": 2.702568125210405e-12,
+          "rms_m": 4.6194334747106696e-12
+        },
+        "camera_fit_train": {
+          "max_m": 5.949789484473292e-12,
+          "median_m": 2.1114840278707635e-12,
+          "rms_m": 2.517619666684733e-12
+        },
+        "frame_count": 86,
+        "gauge_realization_held_out": {
+          "max_m": 1.0521586605231461e-11,
+          "median_m": 2.702568125210405e-12,
+          "rms_m": 4.6194334747106696e-12
+        },
+        "gauge_realization_train": {
+          "max_m": 5.949789484473292e-12,
+          "median_m": 2.1114840278707635e-12,
+          "rms_m": 2.517619666684733e-12
+        },
+        "held_out_observations": 21,
+        "sampled_training_rank": 39,
+        "smallest_retained_singular_value": 1.2059315184632794e-11,
+        "training_observations": 65
+      },
+      "smooth_turn": {
+        "basis": {
+          "bspline_control_count": 28,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 41
+        },
+        "camera_fit_held_out": {
+          "max_m": 1.1205514644014077e-11,
+          "median_m": 2.903354206854193e-12,
+          "rms_m": 4.921810994188537e-12
+        },
+        "camera_fit_train": {
+          "max_m": 6.3341248543598594e-12,
+          "median_m": 2.2598589482162394e-12,
+          "rms_m": 2.6840346783362602e-12
+        },
+        "frame_count": 86,
+        "gauge_realization_held_out": {
+          "max_m": 1.1205514644014077e-11,
+          "median_m": 2.903354206854193e-12,
+          "rms_m": 4.921810994188537e-12
+        },
+        "gauge_realization_train": {
+          "max_m": 6.3341248543598594e-12,
+          "median_m": 2.2598589482162394e-12,
+          "rms_m": 2.6840346783362602e-12
+        },
+        "held_out_observations": 21,
+        "sampled_training_rank": 39,
+        "smallest_retained_singular_value": 1.2059315184632794e-11,
+        "training_observations": 65
+      },
+      "unmodeled_high_frequency_motion": {
+        "basis": {
+          "bspline_control_count": 28,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 41
+        },
+        "camera_fit_held_out": {
+          "max_m": 0.015099795814212879,
+          "median_m": 0.008728155107309444,
+          "rms_m": 0.008201671328708944
+        },
+        "camera_fit_train": {
+          "max_m": 0.010633388582012746,
+          "median_m": 0.004089908069174077,
+          "rms_m": 0.00522876566009502
+        },
+        "frame_count": 86,
+        "gauge_realization_held_out": {
+          "max_m": 0.015099795814212879,
+          "median_m": 0.008728155107309444,
+          "rms_m": 0.008201671328708944
+        },
+        "gauge_realization_train": {
+          "max_m": 0.010633388582012746,
+          "median_m": 0.004089908069174077,
+          "rms_m": 0.00522876566009502
+        },
+        "held_out_observations": 21,
+        "sampled_training_rank": 39,
+        "smallest_retained_singular_value": 1.2059315184632794e-11,
+        "training_observations": 65
+      }
+    },
+    "scene026": {
+      "polynomial_ego_motion": {
+        "basis": {
+          "bspline_control_count": 33,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 46
+        },
+        "camera_fit_held_out": {
+          "max_m": 3.533037736271001e-10,
+          "median_m": 2.335914135835654e-12,
+          "rms_m": 7.079111467621368e-11
+        },
+        "camera_fit_train": {
+          "max_m": 5.647212573155588e-12,
+          "median_m": 8.708756572356567e-13,
+          "rms_m": 1.4583152928589765e-12
+        },
+        "frame_count": 101,
+        "gauge_realization_held_out": {
+          "max_m": 3.533037736271001e-10,
+          "median_m": 2.335914135835654e-12,
+          "rms_m": 7.079111467621368e-11
+        },
+        "gauge_realization_train": {
+          "max_m": 5.647212573155588e-12,
+          "median_m": 8.708756572356567e-13,
+          "rms_m": 1.4583152928589765e-12
+        },
+        "held_out_observations": 25,
+        "sampled_training_rank": 43,
+        "smallest_retained_singular_value": 5.802426296886485e-10,
+        "training_observations": 76
+      },
+      "smooth_turn": {
+        "basis": {
+          "bspline_control_count": 33,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 46
+        },
+        "camera_fit_held_out": {
+          "max_m": 6.301831186082025e-10,
+          "median_m": 4.194813028025332e-12,
+          "rms_m": 1.262788120764374e-10
+        },
+        "camera_fit_train": {
+          "max_m": 9.890905381332816e-12,
+          "median_m": 1.8231309889090286e-12,
+          "rms_m": 2.708931340901023e-12
+        },
+        "frame_count": 101,
+        "gauge_realization_held_out": {
+          "max_m": 6.301831186082025e-10,
+          "median_m": 4.194813028025332e-12,
+          "rms_m": 1.262788120764374e-10
+        },
+        "gauge_realization_train": {
+          "max_m": 9.890905381332816e-12,
+          "median_m": 1.8231309889090286e-12,
+          "rms_m": 2.708931340901023e-12
+        },
+        "held_out_observations": 25,
+        "sampled_training_rank": 43,
+        "smallest_retained_singular_value": 5.802426296886485e-10,
+        "training_observations": 76
+      },
+      "unmodeled_high_frequency_motion": {
+        "basis": {
+          "bspline_control_count": 33,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 46
+        },
+        "camera_fit_held_out": {
+          "max_m": 0.029087956406119803,
+          "median_m": 0.0009748083867241655,
+          "rms_m": 0.005918088621488654
+        },
+        "camera_fit_train": {
+          "max_m": 0.001411088452580507,
+          "median_m": 0.000572162680811885,
+          "rms_m": 0.0007392622593402309
+        },
+        "frame_count": 101,
+        "gauge_realization_held_out": {
+          "max_m": 0.029087956406119803,
+          "median_m": 0.0009748083867241655,
+          "rms_m": 0.005918088621488654
+        },
+        "gauge_realization_train": {
+          "max_m": 0.001411088452580507,
+          "median_m": 0.000572162680811885,
+          "rms_m": 0.0007392622593402309
+        },
+        "held_out_observations": 25,
+        "sampled_training_rank": 43,
+        "smallest_retained_singular_value": 5.802426296886485e-10,
+        "training_observations": 76
+      }
+    },
+    "scene090": {
+      "polynomial_ego_motion": {
+        "basis": {
+          "bspline_control_count": 34,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 47
+        },
+        "camera_fit_held_out": {
+          "max_m": 8.334095845943212e-12,
+          "median_m": 2.4155625784899385e-12,
+          "rms_m": 3.1788581355733556e-12
+        },
+        "camera_fit_train": {
+          "max_m": 4.622440230234978e-12,
+          "median_m": 9.220992814135823e-13,
+          "rms_m": 1.3548792864796161e-12
+        },
+        "frame_count": 103,
+        "gauge_realization_held_out": {
+          "max_m": 8.334095845943212e-12,
+          "median_m": 2.4155625784899385e-12,
+          "rms_m": 3.1788581355733556e-12
+        },
+        "gauge_realization_train": {
+          "max_m": 4.622440230234978e-12,
+          "median_m": 9.220992814135823e-13,
+          "rms_m": 1.3548792864796161e-12
+        },
+        "held_out_observations": 25,
+        "sampled_training_rank": 44,
+        "smallest_retained_singular_value": 6.075580665461545e-10,
+        "training_observations": 78
+      },
+      "smooth_turn": {
+        "basis": {
+          "bspline_control_count": 34,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 47
+        },
+        "camera_fit_held_out": {
+          "max_m": 1.3046248964804601e-11,
+          "median_m": 4.53186343844829e-12,
+          "rms_m": 5.950799387562993e-12
+        },
+        "camera_fit_train": {
+          "max_m": 6.9917953777048e-12,
+          "median_m": 1.7057420481607113e-12,
+          "rms_m": 2.481440435671147e-12
+        },
+        "frame_count": 103,
+        "gauge_realization_held_out": {
+          "max_m": 1.3046248964804601e-11,
+          "median_m": 4.53186343844829e-12,
+          "rms_m": 5.950799387562993e-12
+        },
+        "gauge_realization_train": {
+          "max_m": 6.9917953777048e-12,
+          "median_m": 1.7057420481607113e-12,
+          "rms_m": 2.481440435671147e-12
+        },
+        "held_out_observations": 25,
+        "sampled_training_rank": 44,
+        "smallest_retained_singular_value": 6.075580665461545e-10,
+        "training_observations": 78
+      },
+      "unmodeled_high_frequency_motion": {
+        "basis": {
+          "bspline_control_count": 34,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 47
+        },
+        "camera_fit_held_out": {
+          "max_m": 0.0013146777409378245,
+          "median_m": 0.0007331494883075029,
+          "rms_m": 0.0007919269912559726
+        },
+        "camera_fit_train": {
+          "max_m": 0.0009643902969728074,
+          "median_m": 0.0004279143518852707,
+          "rms_m": 0.0005335733657285872
+        },
+        "frame_count": 103,
+        "gauge_realization_held_out": {
+          "max_m": 0.0013146777409378245,
+          "median_m": 0.0007331494883075029,
+          "rms_m": 0.0007919269912559726
+        },
+        "gauge_realization_train": {
+          "max_m": 0.0009643902969728074,
+          "median_m": 0.0004279143518852707,
+          "rms_m": 0.0005335733657285872
+        },
+        "held_out_observations": 25,
+        "sampled_training_rank": 44,
+        "smallest_retained_singular_value": 6.075580665461545e-10,
+        "training_observations": 78
+      }
+    },
+    "scene105": {
+      "polynomial_ego_motion": {
+        "basis": {
+          "bspline_control_count": 55,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 68
+        },
+        "camera_fit_held_out": {
+          "max_m": 5.587626237554158e-13,
+          "median_m": 4.434757348394338e-14,
+          "rms_m": 1.1843995475348032e-13
+        },
+        "camera_fit_train": {
+          "max_m": 2.0994144931699243e-13,
+          "median_m": 3.19523105820286e-14,
+          "rms_m": 4.772742284079923e-14
+        },
+        "frame_count": 167,
+        "gauge_realization_held_out": {
+          "max_m": 5.587626237554158e-13,
+          "median_m": 4.434757348394338e-14,
+          "rms_m": 1.1843995475348032e-13
+        },
+        "gauge_realization_train": {
+          "max_m": 2.0994144931699243e-13,
+          "median_m": 3.19523105820286e-14,
+          "rms_m": 4.772742284079923e-14
+        },
+        "held_out_observations": 41,
+        "sampled_training_rank": 65,
+        "smallest_retained_singular_value": 2.767564461721816e-11,
+        "training_observations": 126
+      },
+      "smooth_turn": {
+        "basis": {
+          "bspline_control_count": 55,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 68
+        },
+        "camera_fit_held_out": {
+          "max_m": 9.974575241735055e-13,
+          "median_m": 1.0032499201647657e-13,
+          "rms_m": 2.2581412053464427e-13
+        },
+        "camera_fit_train": {
+          "max_m": 3.5092414994027473e-13,
+          "median_m": 5.575430505216494e-14,
+          "rms_m": 9.380698182783772e-14
+        },
+        "frame_count": 167,
+        "gauge_realization_held_out": {
+          "max_m": 9.974575241735055e-13,
+          "median_m": 1.0032499201647657e-13,
+          "rms_m": 2.2581412053464427e-13
+        },
+        "gauge_realization_train": {
+          "max_m": 3.5092414994027473e-13,
+          "median_m": 5.575430505216494e-14,
+          "rms_m": 9.380698182783772e-14
+        },
+        "held_out_observations": 41,
+        "sampled_training_rank": 65,
+        "smallest_retained_singular_value": 2.767564461721816e-11,
+        "training_observations": 126
+      },
+      "unmodeled_high_frequency_motion": {
+        "basis": {
+          "bspline_control_count": 55,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 68
+        },
+        "camera_fit_held_out": {
+          "max_m": 1.1648946184598832e-05,
+          "median_m": 7.571209454227473e-06,
+          "rms_m": 7.7544614527311e-06
+        },
+        "camera_fit_train": {
+          "max_m": 9.240791756891925e-06,
+          "median_m": 4.65028923824429e-06,
+          "rms_m": 5.215914456018001e-06
+        },
+        "frame_count": 167,
+        "gauge_realization_held_out": {
+          "max_m": 1.1648946184598832e-05,
+          "median_m": 7.571209454227473e-06,
+          "rms_m": 7.7544614527311e-06
+        },
+        "gauge_realization_train": {
+          "max_m": 9.240791756891925e-06,
+          "median_m": 4.65028923824429e-06,
+          "rms_m": 5.215914456018001e-06
+        },
+        "held_out_observations": 41,
+        "sampled_training_rank": 65,
+        "smallest_retained_singular_value": 2.767564461721816e-11,
+        "training_observations": 126
+      }
+    },
+    "scene108": {
+      "polynomial_ego_motion": {
+        "basis": {
+          "bspline_control_count": 32,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 45
+        },
+        "camera_fit_held_out": {
+          "max_m": 1.1701847661578838e-11,
+          "median_m": 4.02993924374552e-12,
+          "rms_m": 4.847021167218693e-12
+        },
+        "camera_fit_train": {
+          "max_m": 6.5000827521037314e-12,
+          "median_m": 1.4710573274966747e-12,
+          "rms_m": 2.0905403863436463e-12
+        },
+        "frame_count": 96,
+        "gauge_realization_held_out": {
+          "max_m": 1.1701847661578838e-11,
+          "median_m": 4.02993924374552e-12,
+          "rms_m": 4.847021167218693e-12
+        },
+        "gauge_realization_train": {
+          "max_m": 6.5000827521037314e-12,
+          "median_m": 1.4710573274966747e-12,
+          "rms_m": 2.0905403863436463e-12
+        },
+        "held_out_observations": 23,
+        "sampled_training_rank": 42,
+        "smallest_retained_singular_value": 1.0010624613307951e-09,
+        "training_observations": 73
+      },
+      "smooth_turn": {
+        "basis": {
+          "bspline_control_count": 32,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 45
+        },
+        "camera_fit_held_out": {
+          "max_m": 1.9226391399667647e-11,
+          "median_m": 7.668599753091544e-12,
+          "rms_m": 8.98614515246428e-12
+        },
+        "camera_fit_train": {
+          "max_m": 1.018840724818096e-11,
+          "median_m": 2.714140627867318e-12,
+          "rms_m": 3.817418634149362e-12
+        },
+        "frame_count": 96,
+        "gauge_realization_held_out": {
+          "max_m": 1.9226391399667647e-11,
+          "median_m": 7.668599753091544e-12,
+          "rms_m": 8.98614515246428e-12
+        },
+        "gauge_realization_train": {
+          "max_m": 1.018840724818096e-11,
+          "median_m": 2.714140627867318e-12,
+          "rms_m": 3.817418634149362e-12
+        },
+        "held_out_observations": 23,
+        "sampled_training_rank": 42,
+        "smallest_retained_singular_value": 1.0010624613307951e-09,
+        "training_observations": 73
+      },
+      "unmodeled_high_frequency_motion": {
+        "basis": {
+          "bspline_control_count": 32,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 45
+        },
+        "camera_fit_held_out": {
+          "max_m": 0.0026498839876212157,
+          "median_m": 0.001323566227017683,
+          "rms_m": 0.0015334035394750742
+        },
+        "camera_fit_train": {
+          "max_m": 0.0020388570136738145,
+          "median_m": 0.0008160917669906214,
+          "rms_m": 0.0010293443946983588
+        },
+        "frame_count": 96,
+        "gauge_realization_held_out": {
+          "max_m": 0.0026498839876212157,
+          "median_m": 0.001323566227017683,
+          "rms_m": 0.0015334035394750742
+        },
+        "gauge_realization_train": {
+          "max_m": 0.0020388570136738145,
+          "median_m": 0.0008160917669906214,
+          "rms_m": 0.0010293443946983588
+        },
+        "held_out_observations": 23,
+        "sampled_training_rank": 42,
+        "smallest_retained_singular_value": 1.0010624613307951e-09,
+        "training_observations": 73
+      }
+    },
+    "scene134": {
+      "polynomial_ego_motion": {
+        "basis": {
+          "bspline_control_count": 31,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 44
+        },
+        "camera_fit_held_out": {
+          "max_m": 5.534362400838075e-10,
+          "median_m": 3.5723276421714317e-12,
+          "rms_m": 1.1559609707363636e-10
+        },
+        "camera_fit_train": {
+          "max_m": 8.225609814746321e-12,
+          "median_m": 1.3936056056643943e-12,
+          "rms_m": 2.200997151194842e-12
+        },
+        "frame_count": 93,
+        "gauge_realization_held_out": {
+          "max_m": 5.534362400838075e-10,
+          "median_m": 3.5723276421714317e-12,
+          "rms_m": 1.1559609707363636e-10
+        },
+        "gauge_realization_train": {
+          "max_m": 8.225609814746321e-12,
+          "median_m": 1.3936056056643943e-12,
+          "rms_m": 2.200997151194842e-12
+        },
+        "held_out_observations": 23,
+        "sampled_training_rank": 41,
+        "smallest_retained_singular_value": 8.525401789290172e-10,
+        "training_observations": 70
+      },
+      "smooth_turn": {
+        "basis": {
+          "bspline_control_count": 31,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 44
+        },
+        "camera_fit_held_out": {
+          "max_m": 9.94620759248948e-10,
+          "median_m": 6.364195148700438e-12,
+          "rms_m": 2.0775551720860818e-10
+        },
+        "camera_fit_train": {
+          "max_m": 1.4289111051487097e-11,
+          "median_m": 2.5928711986210656e-12,
+          "rms_m": 4.082291012428178e-12
+        },
+        "frame_count": 93,
+        "gauge_realization_held_out": {
+          "max_m": 9.94620759248948e-10,
+          "median_m": 6.364195148700438e-12,
+          "rms_m": 2.0775551720860818e-10
+        },
+        "gauge_realization_train": {
+          "max_m": 1.4289111051487097e-11,
+          "median_m": 2.5928711986210656e-12,
+          "rms_m": 4.082291012428178e-12
+        },
+        "held_out_observations": 23,
+        "sampled_training_rank": 41,
+        "smallest_retained_singular_value": 8.525401789290172e-10,
+        "training_observations": 70
+      },
+      "unmodeled_high_frequency_motion": {
+        "basis": {
+          "bspline_control_count": 31,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 44
+        },
+        "camera_fit_held_out": {
+          "max_m": 0.02526474851157711,
+          "median_m": 0.0015494734334014421,
+          "rms_m": 0.005651817895277628
+        },
+        "camera_fit_train": {
+          "max_m": 0.002893445233353086,
+          "median_m": 0.0009226312663353247,
+          "rms_m": 0.0014504157416780296
+        },
+        "frame_count": 93,
+        "gauge_realization_held_out": {
+          "max_m": 0.02526474851157711,
+          "median_m": 0.0015494734334014421,
+          "rms_m": 0.005651817895277628
+        },
+        "gauge_realization_train": {
+          "max_m": 0.002893445233353086,
+          "median_m": 0.0009226312663353247,
+          "rms_m": 0.0014504157416780296
+        },
+        "held_out_observations": 23,
+        "sampled_training_rank": 41,
+        "smallest_retained_singular_value": 8.525401789290172e-10,
+        "training_observations": 70
+      }
+    },
+    "scene150": {
+      "polynomial_ego_motion": {
+        "basis": {
+          "bspline_control_count": 34,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 47
+        },
+        "camera_fit_held_out": {
+          "max_m": 1.3141188370832636e-11,
+          "median_m": 2.628018829606513e-12,
+          "rms_m": 3.888252485857481e-12
+        },
+        "camera_fit_train": {
+          "max_m": 3.86391662095855e-12,
+          "median_m": 1.1491554124815343e-12,
+          "rms_m": 1.3862454559981836e-12
+        },
+        "frame_count": 102,
+        "gauge_realization_held_out": {
+          "max_m": 1.3141188370832636e-11,
+          "median_m": 2.628018829606513e-12,
+          "rms_m": 3.888252485857481e-12
+        },
+        "gauge_realization_train": {
+          "max_m": 3.86391662095855e-12,
+          "median_m": 1.1491554124815343e-12,
+          "rms_m": 1.3862454559981836e-12
+        },
+        "held_out_observations": 25,
+        "sampled_training_rank": 44,
+        "smallest_retained_singular_value": 6.14357415646435e-10,
+        "training_observations": 77
+      },
+      "smooth_turn": {
+        "basis": {
+          "bspline_control_count": 34,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 47
+        },
+        "camera_fit_held_out": {
+          "max_m": 2.5012611910242223e-11,
+          "median_m": 4.755937395641339e-12,
+          "rms_m": 7.342329869105276e-12
+        },
+        "camera_fit_train": {
+          "max_m": 6.393508817984004e-12,
+          "median_m": 2.114681133069464e-12,
+          "rms_m": 2.5285712430788166e-12
+        },
+        "frame_count": 102,
+        "gauge_realization_held_out": {
+          "max_m": 2.5012611910242223e-11,
+          "median_m": 4.755937395641339e-12,
+          "rms_m": 7.342329869105276e-12
+        },
+        "gauge_realization_train": {
+          "max_m": 6.393508817984004e-12,
+          "median_m": 2.114681133069464e-12,
+          "rms_m": 2.5285712430788166e-12
+        },
+        "held_out_observations": 25,
+        "sampled_training_rank": 44,
+        "smallest_retained_singular_value": 6.14357415646435e-10,
+        "training_observations": 77
+      },
+      "unmodeled_high_frequency_motion": {
+        "basis": {
+          "bspline_control_count": 34,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 47
+        },
+        "camera_fit_held_out": {
+          "max_m": 0.002781228635123852,
+          "median_m": 0.000783051706444552,
+          "rms_m": 0.0009632513105899984
+        },
+        "camera_fit_train": {
+          "max_m": 0.000983597951406719,
+          "median_m": 0.0004482941736262052,
+          "rms_m": 0.000530025878468686
+        },
+        "frame_count": 102,
+        "gauge_realization_held_out": {
+          "max_m": 0.002781228635123852,
+          "median_m": 0.000783051706444552,
+          "rms_m": 0.0009632513105899984
+        },
+        "gauge_realization_train": {
+          "max_m": 0.000983597951406719,
+          "median_m": 0.0004482941736262052,
+          "rms_m": 0.000530025878468686
+        },
+        "held_out_observations": 25,
+        "sampled_training_rank": 44,
+        "smallest_retained_singular_value": 6.14357415646435e-10,
+        "training_observations": 77
+      }
+    },
+    "scene181": {
+      "polynomial_ego_motion": {
+        "basis": {
+          "bspline_control_count": 53,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 66
+        },
+        "camera_fit_held_out": {
+          "max_m": 2.4910014711949454e-11,
+          "median_m": 4.196330877994938e-14,
+          "rms_m": 3.940551772943379e-12
+        },
+        "camera_fit_train": {
+          "max_m": 1.6317091924111087e-13,
+          "median_m": 3.21745975363467e-14,
+          "rms_m": 4.768202797720821e-14
+        },
+        "frame_count": 161,
+        "gauge_realization_held_out": {
+          "max_m": 2.4910014711949454e-11,
+          "median_m": 4.196330877994938e-14,
+          "rms_m": 3.940551772943379e-12
+        },
+        "gauge_realization_train": {
+          "max_m": 1.6317091924111087e-13,
+          "median_m": 3.21745975363467e-14,
+          "rms_m": 4.768202797720821e-14
+        },
+        "held_out_observations": 40,
+        "sampled_training_rank": 63,
+        "smallest_retained_singular_value": 3.098567951261819e-11,
+        "training_observations": 121
+      },
+      "smooth_turn": {
+        "basis": {
+          "bspline_control_count": 53,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 66
+        },
+        "camera_fit_held_out": {
+          "max_m": 4.142638042225972e-11,
+          "median_m": 9.284482419950426e-14,
+          "rms_m": 6.5542185510734824e-12
+        },
+        "camera_fit_train": {
+          "max_m": 2.8976511515580103e-13,
+          "median_m": 7.053370601401006e-14,
+          "rms_m": 9.615187828512777e-14
+        },
+        "frame_count": 161,
+        "gauge_realization_held_out": {
+          "max_m": 4.142638042225972e-11,
+          "median_m": 9.284482419950426e-14,
+          "rms_m": 6.5542185510734824e-12
+        },
+        "gauge_realization_train": {
+          "max_m": 2.8976511515580103e-13,
+          "median_m": 7.053370601401006e-14,
+          "rms_m": 9.615187828512777e-14
+        },
+        "held_out_observations": 40,
+        "sampled_training_rank": 63,
+        "smallest_retained_singular_value": 3.098567951261819e-11,
+        "training_observations": 121
+      },
+      "unmodeled_high_frequency_motion": {
+        "basis": {
+          "bspline_control_count": 53,
+          "bspline_order": 5,
+          "canonical_constant": 1,
+          "fft_order": 6,
+          "raw_parameter_count_per_coordinate": 66
+        },
+        "camera_fit_held_out": {
+          "max_m": 0.00026170270161432176,
+          "median_m": 1.1546925922933599e-05,
+          "rms_m": 4.2851604753220266e-05
+        },
+        "camera_fit_train": {
+          "max_m": 1.2716009010024838e-05,
+          "median_m": 6.398915666228911e-06,
+          "rms_m": 6.972090694358888e-06
+        },
+        "frame_count": 161,
+        "gauge_realization_held_out": {
+          "max_m": 0.00026170270161432176,
+          "median_m": 1.1546925922933599e-05,
+          "rms_m": 4.2851604753220266e-05
+        },
+        "gauge_realization_train": {
+          "max_m": 1.2716009010024838e-05,
+          "median_m": 6.398915666228911e-06,
+          "rms_m": 6.972090694358888e-06
+        },
+        "held_out_observations": 40,
+        "sampled_training_rank": 63,
+        "smallest_retained_singular_value": 3.098567951261819e-11,
+        "training_observations": 121
+      }
+    }
+  }
+}
