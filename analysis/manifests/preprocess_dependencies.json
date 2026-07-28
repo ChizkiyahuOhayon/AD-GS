@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "verified_at_utc": "2026-07-28T23:08:32Z",
+  "verified_at_utc": "2026-07-28T23:13:29Z",
   "purpose": "Reproducible preprocessing dependency lock for the AD-GS baseline and GF-DGS experiments",
   "pin_policy": {
     "cutoff_commit": "0d310f462d30dd4d9589aa69a79d8bdbcff0fea8",
@@ -188,11 +188,35 @@
         "weight_size_and_sha256": "passed",
         "environment": "Python 3.7.16, torch 1.13.1+cu117, CUDA available, RTX 4090",
         "model_load": "passed: CoTrackerPredictor, 25385700 parameters, cuda:0",
-        "end_to_end_sample": "pending"
+        "end_to_end_sample": "passed on a locked five-frame Waymo-format contract fixture; real decoded Waymo frames remain pending"
       },
       "evidence": {
         "server_log": "/root/autodl-tmp/gfdgs/logs/cotracker-pinned-load.log",
-        "log_sha256": "3b4f0abfaa5f128ec8ad6b4fd60d7f148a023077eb6c7d46845b6344391219df"
+        "log_sha256": "3b4f0abfaa5f128ec8ad6b4fd60d7f148a023077eb6c7d46845b6344391219df",
+        "contract_fixture": {
+          "source_video": "co-tracker/assets/apple.mp4",
+          "source_video_sha256": "c7f48c5cfb1479e1dbc1df2373d5cad4f55c198bbdb379da0ece10087971542a",
+          "source_mask": "co-tracker/assets/apple_mask.png",
+          "source_mask_sha256": "8e461474a50631a478b6799d33d087b6074d755f42602f689cd84171d9ea9348",
+          "frames": 5,
+          "input_shape": [720, 1296, 3],
+          "downsample": 8,
+          "slide_window": 2,
+          "camera_metadata_sha256": "8fa72b0e2805a067f62fd9eadbdedf7e2263d61d0856d039759e8d00660d2943",
+          "server_path": "/root/autodl-tmp/gfdgs/smoke/cotracker-waymo-contract",
+          "result": "passed: five NPZ files, record counts [1,1,2,1,1], flow shape [2,90,162], visibility shape [90,162], all values finite, visibility within [0,1]",
+          "output_sha256": {
+            "000000.npz": "3c78ec0f31c3e6176bc66898a1d4c4c2bc7556729bc8be7375c66b4f8d6e8fec",
+            "000001.npz": "d37db3b3d3ef5f11b9eb9bb745332291233d03a60e2e4e383cc742650f284db8",
+            "000002.npz": "b2ad941a3a4b8f942570838a11d59c993785275e552935dbb593d005db8abbb0",
+            "000003.npz": "e9bbf7766466213de8e80dd91986069337f74c0621d9445fe9ab274d4074ba15",
+            "000004.npz": "c1e4ae1bf81b0e478bc6de0710ad3cca1f71f7101e8e3ba59177b44423a4b9a1",
+            "flow.mp4": "496947aed82781ffda52a30bb9f365051c7074f6f0d1bb2bee08f25d49db211d"
+          },
+          "server_log": "/root/autodl-tmp/gfdgs/logs/cotracker-waymo-contract-e2e.log",
+          "log_sha256": "a1cb12e9f83b36179cdda25bf41441a278f8a5df2c155cba5b80841457aa34d4",
+          "limitation": "This verifies the adapter and serialized-flow contract, not numerical behavior on decoded Waymo data."
+        }
       }
     }
   ],
