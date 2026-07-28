@@ -27,6 +27,7 @@ def get_arguments():
     # parser.add_argument('--text', default='car.bus.truck.van.human.bike.')  # for nuScenes
     parser.add_argument('--name', default='semantic')
     parser.add_argument('--step', default=1, type=int)
+    parser.add_argument('--grounding_revision', default=None)
     args = parser.parse_args()
     return args
 
@@ -61,8 +62,13 @@ image_predictor = SAM2ImagePredictor(sam2_image_model)
 
 # init grounding dino model from huggingface
 model_id = "IDEA-Research/grounding-dino-base"
-processor = AutoProcessor.from_pretrained(model_id)
-grounding_model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).to(device)
+grounding_kwargs = {}
+if args.grounding_revision is not None:
+    grounding_kwargs['revision'] = args.grounding_revision
+processor = AutoProcessor.from_pretrained(model_id, **grounding_kwargs)
+grounding_model = AutoModelForZeroShotObjectDetection.from_pretrained(
+    model_id, **grounding_kwargs
+).to(device)
 
 
 # setup the input image and text prompt for SAM 2 and Grounding DINO
