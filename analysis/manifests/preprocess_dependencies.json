@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "verified_at_utc": "2026-07-28T22:35:52Z",
+  "purpose": "Reproducible preprocessing dependency lock for the AD-GS baseline and GF-DGS experiments",
+  "pin_policy": {
+    "cutoff_commit": "0d310f462d30dd4d9589aa69a79d8bdbcff0fea8",
+    "cutoff_timestamp": "2025-07-14T16:27:13+08:00",
+    "cutoff_event": "AD-GS code release commit",
+    "selection_rule": "For repositories not pinned by AD-GS, use the latest upstream commit whose commit timestamp is no later than the cutoff timestamp.",
+    "limitation": "These are retrospective reproducibility pins inferred from public history, not author-supplied dependency revisions."
+  },
+  "ad_gs": {
+    "repository": "https://github.com/JiaweiXu8/AD-GS.git",
+    "released_baseline_commit": "9a208512e49c8ddbaa20387921d9648adcd21cb4",
+    "released_baseline_path": "/root/autodl-tmp/gfdgs/src/AD-GS-baseline",
+    "development_path": "/root/autodl-tmp/gfdgs/src/AD-GS",
+    "baseline_isolation": "Released baseline runs must use the pristine baseline path; GF-DGS source changes must use the development path."
+  },
+  "dependencies": [
+    {
+      "name": "Depth-Anything-V2",
+      "role": "monocular depth preprocessing",
+      "repository": "https://github.com/DepthAnything/Depth-Anything-V2.git",
+      "commit": "e5a2732d3ea2cddc081d7bfd708fc0bf09f812f1",
+      "commit_timestamp": "2025-01-22T15:53:27+08:00",
+      "server_path": "/root/autodl-tmp/gfdgs/src/Depth-Anything-V2",
+      "weight": {
+        "model": "depth_anything_v2_vitl",
+        "source": "https://huggingface.co/depth-anything/Depth-Anything-V2-Large/resolve/main/depth_anything_v2_vitl.pth",
+        "server_path": "/root/autodl-tmp/gfdgs/src/Depth-Anything-V2/checkpoints/depth_anything_v2_vitl.pth",
+        "bytes": 1341395338,
+        "sha256": "a7ea19fa0ed99244e67b624c72b8580b7e9553043245905be58796a608eb9345"
+      },
+      "verification": {
+        "repository_commit": "passed",
+        "weight_size_and_sha256": "passed",
+        "environment_import": "pending",
+        "model_load": "pending",
+        "end_to_end_sample": "pending"
+      }
+    },
+    {
+      "name": "Grounded-SAM-2",
+      "role": "object mask and persistent diagnostic actor-ID preprocessing",
+      "repository": "https://github.com/IDEA-Research/Grounded-SAM-2.git",
+      "commit": "2111d9c52c354671069dbd1ffe3acc09ce17068c",
+      "commit_timestamp": "2025-05-27T00:24:30+08:00",
+      "server_path": "/root/autodl-tmp/gfdgs/src/Grounded-SAM-2",
+      "weight": {
+        "model": "sam2.1_hiera_large",
+        "source": "https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_large.pt",
+        "server_path": "/root/autodl-tmp/gfdgs/src/Grounded-SAM-2/checkpoints/sam2.1_hiera_large.pt",
+        "bytes": 898083611,
+        "sha256": "2647878d5dfa5098f2f8649825738a9345572bae2d4350a2468587ece47dd318"
+      },
+      "runtime_model": {
+        "model_id": "IDEA-Research/grounding-dino-base",
+        "revision": null,
+        "status": "pending exact Hugging Face snapshot revision"
+      },
+      "verification": {
+        "repository_commit": "passed",
+        "weight_size_and_sha256": "passed",
+        "environment_import": "pending",
+        "model_load": "pending",
+        "end_to_end_sample": "pending"
+      },
+      "scope_constraint": "Grounded-SAM2 actor IDs are allowed only for fixed-group Stage-B diagnostics; the final Stage-C annotation-free assignment must not consume them."
+    },
+    {
+      "name": "CoTracker",
+      "role": "optical-track preprocessing",
+      "repository": "https://github.com/facebookresearch/co-tracker.git",
+      "commit": "82e02e8029753ad4ef13cf06be7f4fc5facdda4d",
+      "commit_timestamp": "2025-01-21T21:30:41+00:00",
+      "server_path": "/root/autodl-tmp/gfdgs/src/co-tracker",
+      "weight": {
+        "model": "cotracker3_offline scaled_offline",
+        "source": "https://huggingface.co/facebook/cotracker3/resolve/main/scaled_offline.pth",
+        "server_path": "/root/autodl-tmp/gfdgs/cache/torch/hub/checkpoints/scaled_offline.pth",
+        "bytes": 101890938,
+        "sha256": "2670d4562ed69326dda775a26e54883925cd11b6fc9b24cb7aa9f8078bce7834"
+      },
+      "verification": {
+        "repository_commit": "passed",
+        "weight_size_and_sha256": "passed",
+        "environment": "Python 3.7.16, torch 1.13.1+cu117, CUDA available, RTX 4090",
+        "model_load": "passed: CoTrackerPredictor, 25385700 parameters, cuda:0",
+        "end_to_end_sample": "pending"
+      },
+      "evidence": {
+        "server_log": "/root/autodl-tmp/gfdgs/logs/cotracker-pinned-load.log",
+        "log_sha256": "3b4f0abfaa5f128ec8ad6b4fd60d7f148a023077eb6c7d46845b6344391219df"
+      }
+    }
+  ],
+  "ad_gs_environment": {
+    "server_path": "/root/autodl-tmp/gfdgs/envs/adgs-official",
+    "python": "3.7.16",
+    "torch": "1.13.1+cu117",
+    "torchvision": "0.14.1",
+    "gpu": "NVIDIA GeForce RTX 4090",
+    "cuda_available": true,
+    "colmap_conda_record": "3.7 h06efa00_2 conda-forge",
+    "colmap_runtime_banner": "COLMAP 3.8 (Commit Unknown on Unknown without CUDA)",
+    "colmap_version_note": "The pinned conda package metadata and executable banner disagree; preserve both facts and validate the actual Waymo COLMAP output before accepting preprocessing.",
+    "imageio_ffmpeg_package": "0.4.9",
+    "imageio_ffmpeg_runtime": "4.2.2-static",
+    "imageio_ffmpeg_executable": "/root/autodl-tmp/gfdgs/envs/adgs-official/lib/python3.7/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux64-v4.2.2",
+    "post_colmap_regression": {
+      "result": "passed 9/9 unittest cases in 2.493 seconds",
+      "server_log": "/root/autodl-tmp/gfdgs/logs/adgs-unittest-after-colmap.log",
+      "log_sha256": "250df52648737ab8b9289be4cf6476f08fbeacba07fe150118f0fb2f95459616"
+    }
+  },
+  "environment_solver": {
+    "name": "micromamba",
+    "version": "2.8.1",
+    "source": "https://micro.mamba.pm/api/micromamba/linux-64/latest",
+    "archive_path": "/root/autodl-tmp/gfdgs/tools/micromamba.tar.bz2",
+    "archive_sha256": "a934c3709c997feae403a27fd1e321c106d26ffa4f294800ffb11cbc9a3e8515",
+    "binary_path": "/root/autodl-tmp/gfdgs/tools/micromamba/bin/micromamba"
+  },
+  "remaining_gates": [
+    "Create isolated Python 3.11 Depth-Anything-V2 environment and pass import, weight-load, and sample inference checks.",
+    "Create isolated Python 3.10 Grounded-SAM-2 environment, pin the Grounding DINO Hugging Face snapshot revision, and pass import, weight-load, and sample inference checks.",
+    "Run CoTracker end-to-end on decoded Waymo frames using the pinned local repository and cached weight.",
+    "Validate COLMAP output on a locked Waymo sequence despite the conda-package/runtime-banner discrepancy.",
+    "Record object metadata, byte size, and SHA-256 for every downloaded Waymo v1.4.1 TFRecord."
+  ]
+}
