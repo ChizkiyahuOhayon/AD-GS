@@ -1,0 +1,62 @@
+{
+  "adgs_rasterizer": [
+    {
+      "actor_only_depth_max_abs": 1.0922033786773682,
+      "actor_only_image_max_abs": 5.066394805908203e-07,
+      "lambda": 0.75
+    },
+    {
+      "actor_only_depth_max_abs": 1.0922040939331055,
+      "actor_only_image_max_abs": 6.556510925292969e-07,
+      "lambda": 1.25
+    },
+    {
+      "actor_only_depth_max_abs": 4.368814468383789,
+      "actor_only_image_max_abs": 0.0,
+      "lambda": 2.0
+    }
+  ],
+  "analytical_dtype": "torch.float64",
+  "analytical_projection": [
+    {
+      "lambda": 0.75,
+      "primary_covariance_max_abs_px2": 9.094947017729282e-13,
+      "primary_mean_max_abs_px": 2.842170943040401e-14,
+      "second_camera_covariance_max_abs_px2": 79.6444444444437,
+      "second_camera_mean_max_abs_px": 66.66666666666669
+    },
+    {
+      "lambda": 1.25,
+      "primary_covariance_max_abs_px2": 4.547473508864641e-13,
+      "primary_mean_max_abs_px": 3.552713678800501e-15,
+      "second_camera_covariance_max_abs_px2": 40.96000000000049,
+      "second_camera_mean_max_abs_px": 40.0
+    },
+    {
+      "lambda": 2.0,
+      "primary_covariance_max_abs_px2": 0.0,
+      "primary_mean_max_abs_px": 0.0,
+      "second_camera_covariance_max_abs_px2": 92.80000000000018,
+      "second_camera_mean_max_abs_px": 100.0
+    }
+  ],
+  "assumptions_for_complete_image_invariance": [
+    "positive lambda and positive camera depth",
+    "one camera center per observation time, or negligible relative baseline",
+    "unchanged clipping and visibility",
+    "unchanged ordering against static and other independently transformed content",
+    "appearance depends only on the preserved viewing direction"
+  ],
+  "conclusion": "The projected Gaussian orbit is exact. Complete-image invariance is conditional, and the multi-camera case is only approximate as baseline grows relative to actor range.",
+  "gate": {
+    "conditional_host_image_invariance": true,
+    "projected_moments_near_machine_precision": true,
+    "unconditional_complete_image_invariance": false
+  },
+  "orbit": "mu'=o+lambda*(mu-o), Sigma'=lambda^2*Sigma",
+  "ordering_counterexample": {
+    "image_max_abs_after_static_depth_crossing": 0.8905373215675354,
+    "lambda": 2.0
+  },
+  "second_camera_baseline_m": 0.5
+}
