@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "verified_at_utc": "2026-07-28T22:35:52Z",
+  "verified_at_utc": "2026-07-28T23:08:32Z",
   "purpose": "Reproducible preprocessing dependency lock for the AD-GS baseline and GF-DGS experiments",
   "pin_policy": {
     "cutoff_commit": "0d310f462d30dd4d9589aa69a79d8bdbcff0fea8",
@@ -24,6 +24,13 @@
       "commit": "e5a2732d3ea2cddc081d7bfd708fc0bf09f812f1",
       "commit_timestamp": "2025-01-22T15:53:27+08:00",
       "server_path": "/root/autodl-tmp/gfdgs/src/Depth-Anything-V2",
+      "adapter_script": {
+        "source": "AD-GS-baseline/scripts/run-dpt.py",
+        "source_sha256": "f02545c46410b3fe8bc6b4a527ddf99a9383901eabe272c2a4e0e7450e605a1d",
+        "copied_path": "/root/autodl-tmp/gfdgs/src/Depth-Anything-V2/run-dpt.py",
+        "copied_sha256": "f02545c46410b3fe8bc6b4a527ddf99a9383901eabe272c2a4e0e7450e605a1d",
+        "copy_is_exact": true
+      },
       "weight": {
         "model": "depth_anything_v2_vitl",
         "source": "https://huggingface.co/depth-anything/Depth-Anything-V2-Large/resolve/main/depth_anything_v2_vitl.pth",
@@ -34,9 +41,33 @@
       "verification": {
         "repository_commit": "passed",
         "weight_size_and_sha256": "passed",
-        "environment_import": "pending",
-        "model_load": "pending",
-        "end_to_end_sample": "pending"
+        "environment_import": "passed: Python 3.11.9, torch 2.3.1, CUDA runtime 12.1, CUDA available, RTX 4090",
+        "model_load": "passed: depth_anything_v2_vitl checkpoint loaded on cuda",
+        "end_to_end_sample": "passed: one repository demo image"
+      },
+      "environment_lock": {
+        "server_path": "/root/autodl-tmp/gfdgs/envs/depth-anything-v2",
+        "conda_explicit": "analysis/manifests/depth-anything-v2-linux-64.explicit.txt",
+        "conda_explicit_sha256": "df40345b76b879b7ede294c30be1188743290314462b081293a87387c8f81b61",
+        "pip_inventory": "analysis/manifests/depth-anything-v2-pip-list.txt",
+        "pip_inventory_sha256": "a2d0e3653ec842e67c09770e7f5cd96b08d6dec8eb04543fcd4044dc3e6ea6fa",
+        "rebuild_note": "Use the conda explicit file for reconstruction; the pip inventory is an audit of installed versions, not a second installer lock."
+      },
+      "sample_evidence": {
+        "input": "Depth-Anything-V2/assets/examples/demo01.jpg",
+        "input_sha256": "35ef1bbb63f6540e49aa9b6302b9b938be4fe8b9c08c07c3694b02396b0e87e0",
+        "output": "/root/autodl-tmp/gfdgs/smoke/dpt-demo01-20260728/demo01.npy",
+        "output_bytes": 11157632,
+        "output_sha256": "d79d63748d422d389009749cbc92fa91dce58c83b8a816bd368a176194a5a28d",
+        "shape": [1362, 2048, 1],
+        "dtype": "float32",
+        "all_finite": true,
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "mean": 0.149485677,
+        "standard_deviation": 0.194139242,
+        "server_log": "/root/autodl-tmp/gfdgs/logs/dpt-vitl-smoke.log",
+        "log_sha256": "b2a1aeed03979550c241c177890da134a49e04b9737f70f77a7bceb083da21ed"
       }
     },
     {
@@ -46,6 +77,16 @@
       "commit": "2111d9c52c354671069dbd1ffe3acc09ce17068c",
       "commit_timestamp": "2025-05-27T00:24:30+08:00",
       "server_path": "/root/autodl-tmp/gfdgs/src/Grounded-SAM-2",
+      "adapter_script": {
+        "source": "AD-GS-baseline/scripts/semantic.py",
+        "source_sha256": "8429c19c6b50591103342d1205391e805866f1745a2d7cb4109e364f2911198f",
+        "pinned_script": "AD-GS/scripts/semantic.py",
+        "pinned_script_sha256": "95bb61ccf383143bdd9b1172841739b6d977bd492bd6bc1d54caf05b256a48e5",
+        "copied_path": "/root/autodl-tmp/gfdgs/src/Grounded-SAM-2/semantic.py",
+        "copied_sha256": "95bb61ccf383143bdd9b1172841739b6d977bd492bd6bc1d54caf05b256a48e5",
+        "change_scope": "Adds optional --grounding_revision and passes it unchanged to both Hugging Face from_pretrained calls; behavior without the option is unchanged.",
+        "pristine_baseline_modified": false
+      },
       "weight": {
         "model": "sam2.1_hiera_large",
         "source": "https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_large.pt",
@@ -55,15 +96,68 @@
       },
       "runtime_model": {
         "model_id": "IDEA-Research/grounding-dino-base",
-        "revision": null,
-        "status": "pending exact Hugging Face snapshot revision"
+        "revision": "12bdfa3120f3e7ec7b434d90674b3396eccf88eb",
+        "revision_timestamp": "2024-05-12T09:03:22.000Z",
+        "revision_selection": "Latest Hugging Face commit, and therefore latest commit no later than the AD-GS cutoff timestamp.",
+        "commit_history_source": "https://huggingface.co/api/models/IDEA-Research/grounding-dino-base/commits/main?limit=100",
+        "commit_history": "analysis/manifests/grounding-dino-base-commits.json",
+        "commit_history_sha256": "68747c25b582e9126e0799fd7de7553325ba11f8b46d1d2b4f3369c3c35a8b67",
+        "revision_metadata": "analysis/manifests/grounding-dino-base-revision.json",
+        "revision_metadata_sha256": "46f0dba44ee9d515335dcf09f57fea9ab34765712fd56ddec9221f70c8361309",
+        "snapshot_cache_path": "/root/autodl-tmp/gfdgs/cache/huggingface/hub/models--IDEA-Research--grounding-dino-base/snapshots/12bdfa3120f3e7ec7b434d90674b3396eccf88eb",
+        "snapshot_hashes": "analysis/manifests/grounding-dino-base-snapshot.sha256",
+        "snapshot_hashes_sha256": "acfdd5be6799149624d35d01e0e9c2af2d2ce3c8a95581d389250bdeaa789fda",
+        "snapshot_sizes": "analysis/manifests/grounding-dino-base-snapshot.sizes",
+        "snapshot_sizes_sha256": "5b4b5e3798b7c05cb1ab5294eca1eb509eb227b28db4c5c8887361455c6037f5",
+        "model_safetensors_bytes": 933400872,
+        "model_safetensors_sha256": "5548f844c928c4b6f411fa8cbcc2bfa8dbbba437cb1d513975519f93c2a9ed21",
+        "status": "exact revision downloaded, file-hashed, model-loaded, and reused in an offline end-to-end run"
       },
       "verification": {
         "repository_commit": "passed",
         "weight_size_and_sha256": "passed",
-        "environment_import": "pending",
-        "model_load": "pending",
-        "end_to_end_sample": "pending"
+        "environment_import": "passed: Python 3.10.14, torch 2.3.1, CUDA runtime 12.1, NumPy 1.26.4, OpenCV 4.10.0, transformers 4.40.2, supervision 0.22.0",
+        "model_load": "passed: SAM2Base 224446642 parameters and GroundingDinoForObjectDetection 232313216 parameters on cuda:0",
+        "end_to_end_sample": "passed offline: detection, image segmentation, video propagation, persistent instance-ID mask, and MP4 output"
+      },
+      "environment_lock": {
+        "server_path": "/root/autodl-tmp/gfdgs/envs/grounded-sam2",
+        "conda_explicit": "analysis/manifests/grounded-sam2-linux-64.explicit.txt",
+        "conda_explicit_sha256": "5af505afbcfa30f8ca5268d2a0b5ad83473d6828c9e1f333202209053ab69ee1",
+        "pip_inventory": "analysis/manifests/grounded-sam2-pip-list.txt",
+        "pip_inventory_sha256": "496c665bfd344637cd3ca63516c1253802446d276187948afb55542065913190",
+        "rebuild_note": "Use the conda explicit file for reconstruction; the pip inventory audits installed versions and the editable SAM-2 package."
+      },
+      "cuda_extension": {
+        "status": "built and imported",
+        "torch_cuda": "12.1",
+        "nvcc": "12.1.105",
+        "target": "sm_89",
+        "binary": "/root/autodl-tmp/gfdgs/src/Grounded-SAM-2/sam2/_C.so",
+        "bytes": 1888704,
+        "sha256": "0a9861ac148bcea53f74a402a4a83742cfb186e89688d180c8b33398ee1b7549",
+        "build_log": "/root/autodl-tmp/gfdgs/logs/sam2-cuda-extension-build2.log",
+        "build_log_sha256": "4ad23b33406a465a84c50deea4c4312b3f5d055ebb97a8c9abb478286d9a8f30",
+        "sample_ablation": "With-extension and without-extension instance masks were exactly equal on the locked one-frame smoke input: 0 of 3375000 pixels differed."
+      },
+      "sample_evidence": {
+        "offline_mode": true,
+        "input": "Grounded-SAM-2/notebooks/images/cars.jpg",
+        "input_sha256": "76e496e8975c7f21955cbe73aaa027e541fccf5169d50744e14df780717ee52a",
+        "mask": "/root/autodl-tmp/gfdgs/smoke/sam-one-frame/semantic_smoke_cuda/mask_0.npy",
+        "mask_bytes": 6750128,
+        "mask_sha256": "aac4e7868d7fd911bef39c427ce01be166c4426ec3ed59681447d2f93b634419",
+        "mask_shape": [1500, 2250],
+        "mask_dtype": "uint16",
+        "instance_values": [0, 1, 2, 3],
+        "instance_pixel_counts": [2132475, 420625, 22, 821878],
+        "video": "/root/autodl-tmp/gfdgs/smoke/sam-one-frame/semantic_smoke_cuda.mp4",
+        "video_bytes": 137397,
+        "video_sha256": "15660ed4fd58f197828987fc1403db552e337f8da1b984d3503a252eca819904",
+        "sam2_load_log_sha256": "496e92af60e7c537a143ccb8962ddf071d4841b00a5fa9920ffad342144f65de",
+        "grounding_dino_load_log_sha256": "342932ac4644dbd04d3ad65c68c62b68c4d3540e968cf093a7edd86ac8718819",
+        "end_to_end_log": "/root/autodl-tmp/gfdgs/logs/grounded-sam2-e2e-smoke-cuda.log",
+        "end_to_end_log_sha256": "42a34d0cb8cc2514d80b9d32c2de8d66a2a1c179ab1410ce35a6aaa3fcf1f99a"
       },
       "scope_constraint": "Grounded-SAM2 actor IDs are allowed only for fixed-group Stage-B diagnostics; the final Stage-C annotation-free assignment must not consume them."
     },
@@ -74,6 +168,14 @@
       "commit": "82e02e8029753ad4ef13cf06be7f4fc5facdda4d",
       "commit_timestamp": "2025-01-21T21:30:41+00:00",
       "server_path": "/root/autodl-tmp/gfdgs/src/co-tracker",
+      "adapter_script": {
+        "released_script": "AD-GS-baseline/scripts/flow.py",
+        "released_script_sha256": "5d4725c7f25d077aaef31fbade55f0e9ba58b26282321b87f0bde14b5969c083",
+        "pinned_local_script": "AD-GS/scripts/flow.py",
+        "pinned_local_script_sha256": "502acaef89e398d696e4d9771fbb40327ca2624a0b3d9f18459955f6599e27a1",
+        "change_scope": "Adds --cotracker_repo and passes source=local to torch.hub; the pristine released baseline clone remains unmodified.",
+        "reason": "The released script resolves the mutable upstream main branch and cannot reproduce a fixed dependency state."
+      },
       "weight": {
         "model": "cotracker3_offline scaled_offline",
         "source": "https://huggingface.co/facebook/cotracker3/resolve/main/scaled_offline.pth",
@@ -122,8 +224,6 @@
     "binary_path": "/root/autodl-tmp/gfdgs/tools/micromamba/bin/micromamba"
   },
   "remaining_gates": [
-    "Create isolated Python 3.11 Depth-Anything-V2 environment and pass import, weight-load, and sample inference checks.",
-    "Create isolated Python 3.10 Grounded-SAM-2 environment, pin the Grounding DINO Hugging Face snapshot revision, and pass import, weight-load, and sample inference checks.",
     "Run CoTracker end-to-end on decoded Waymo frames using the pinned local repository and cached weight.",
     "Validate COLMAP output on a locked Waymo sequence despite the conda-package/runtime-banner discrepancy.",
     "Record object metadata, byte size, and SHA-256 for every downloaded Waymo v1.4.1 TFRecord."
