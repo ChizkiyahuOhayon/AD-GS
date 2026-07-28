@@ -800,11 +800,19 @@ if __name__ == '__main__':
     parser.add_argument('--cam', default=0, type=int)  # only use to generate video
     parser.add_argument('--fps', default=10, type=int)
     parser.add_argument('--split_mode', default='nvs-75')
+    parser.add_argument('--cotracker_repo', default=None)
     args = parser.parse_args()
     torch.cuda.set_device(args.device)
     src_path = args.path
 
-    cotracker = torch.hub.load("facebookresearch/co-tracker", "cotracker3_offline").cuda()
+    if args.cotracker_repo is None:
+        cotracker = torch.hub.load("facebookresearch/co-tracker", "cotracker3_offline").cuda()
+    else:
+        cotracker = torch.hub.load(
+            args.cotracker_repo,
+            "cotracker3_offline",
+            source='local',
+        ).cuda()
 
     # for cached model
     # cotracker = torch.hub.load("/root/.cache/torch/hub/facebookresearch_co-tracker_main", "cotracker3_offline", trust_repo=True, source='local').cuda()
