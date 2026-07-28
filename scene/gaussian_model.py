@@ -67,6 +67,7 @@ class GaussianModel:
         self._obj_scaling = torch.empty(0)
         self._obj_rotation = torch.empty(0)
         self._obj_opacity = torch.empty(0)
+        self._obj_actor_id = torch.empty(0, dtype=torch.long)
 
         self.order_args = order_args
         self.xyz_deform_param = torch.empty(0)
@@ -123,6 +124,10 @@ class GaussianModel:
     @property
     def get_obj_xyz(self):
         return self._obj_xyz
+
+    @property
+    def get_obj_actor_id(self):
+        return self._obj_actor_id
     
     @property
     def get_shs(self):
@@ -298,6 +303,10 @@ class GaussianModel:
         self._obj_scaling = nn.Parameter(scales[obj_mask].requires_grad_(True))
         self._obj_rotation = nn.Parameter(rots[obj_mask].requires_grad_(True))
         self._obj_opacity = nn.Parameter(opacities[obj_mask].requires_grad_(True))
+        actor_ids = torch.tensor(
+            np.asarray(pcd.obj_id[..., 0]), dtype=torch.long, device='cuda'
+        )
+        self._obj_actor_id = actor_ids[obj_mask]
 
         self.max_radii2D = torch.zeros((fused_point_cloud.shape[0]), device="cuda")
 
@@ -423,6 +432,7 @@ class GaussianModel:
         for i in range(self._scene_rotation.shape[1]):
             l.append('rot_{}'.format(i))
         l.append('obj')
+        l.append('actor_id')
         return l
 
     def save_ply(self, path):
@@ -436,11 +446,15 @@ class GaussianModel:
         scale = torch.cat([self._scene_scaling, self._obj_scaling], dim=0).detach().cpu().numpy()
         rotation = torch.cat([self._scene_rotation, self._obj_rotation], dim=0).detach().cpu().numpy()
         obj_mask = self.get_obj_mask[..., None].float().detach().cpu().numpy()
+        actor_id = torch.cat([
+            torch.zeros(self.get_scene_pts_num, dtype=torch.long, device='cuda'),
+            self._obj_actor_id,
+        ])[..., None].float().detach().cpu().numpy()
 
         dtype_full = [(attribute, 'f4') for attribute in self.construct_list_of_attributes()]
 
         elements = np.empty(xyz.shape[0], dtype=dtype_full)
-        attributes = np.concatenate((xyz, normals, shs_dc, shs_rest, opacities, scale, rotation, obj_mask), axis=1)
+        attributes = np.concatenate((xyz, normals, shs_dc, shs_rest, opacities, scale, rotation, obj_mask, actor_id), axis=1)
         elements[:] = list(map(tuple, attributes))
         el = PlyElement.describe(elements, 'vertex')
         PlyData([el]).write(path)
@@ -473,6 +487,11 @@ class GaussianModel:
         opacities = np.asarray(plydata.elements[0]["opacity"])[..., np.newaxis]
         obj_mask = np.asarray(plydata.elements[0]['obj']) > 0.5
         scene_mask = np.logical_not(obj_mask)
+        property_names = {prop.name for prop in plydata.elements[0].properties}
+        if 'actor_id' in property_names:
+            actor_id = np.asarray(plydata.elements[0]['actor_id']).astype(np.int64)
+        else:
+            actor_id = np.full(xyz.shape[0], -1, dtype=np.int64)
 
         shs_dc = np.zeros((xyz.shape[0], 3, 1))
         shs_dc[:, 0, 0] = np.asarray(plydata.elements[0]["shs_dc_0"])
@@ -513,6 +532,7 @@ class GaussianModel:
         self._obj_opacity = nn.Parameter(torch.tensor(opacities[obj_mask], dtype=torch.float32, device='cuda').requires_grad_(True))
         self._obj_scaling = nn.Parameter(torch.tensor(scales[obj_mask], dtype=torch.float32, device='cuda').requires_grad_(True))
         self._obj_rotation = nn.Parameter(torch.tensor(rots[obj_mask], dtype=torch.float32, device='cuda').requires_grad_(True))
+        self._obj_actor_id = torch.tensor(actor_id[obj_mask], dtype=torch.long, device='cuda')
 
         (
             xyz_deform_param, 
@@ -607,6 +627,7 @@ class GaussianModel:
         self.shs_deform_param_obj = optimizable_tensors['deform_shs_obj']
         self.gs_time_sigma = optimizable_tensors['time_sigma']
         self.gs_time = self.gs_time[valid_obj_mask]
+        self._obj_actor_id = self._obj_actor_id[valid_obj_mask]
 
         valid_mask = torch.cat([valid_scene_mask, valid_obj_mask], dim=0)
         self.xyz_gradient_accum = self.xyz_gradient_accum[valid_mask]
@@ -652,6 +673,7 @@ class GaussianModel:
             new_obj_opacities,
             new_obj_scaling,
             new_obj_rotation,
+            new_obj_actor_id,
 
             new_deform_xyz,
             new_deform_rotation,
@@ -705,6 +727,8 @@ class GaussianModel:
         self.gs_time_sigma = optimizable_tensors['time_sigma']
 
         self.gs_time = torch.cat([self.gs_time, new_time], dim=0)
+        self._obj_actor_id = torch.cat([self._obj_actor_id, new_obj_actor_id], dim=0)
+        assert self._obj_actor_id.shape[0] == self.get_obj_pts_num
 
         pts_num = self.get_pts_num
         self.xyz_gradient_accum = torch.zeros((pts_num, 1), device="cuda")
@@ -736,6 +760,7 @@ class GaussianModel:
         new_obj_shs_dc = self._obj_shs_dc[obj_densify_mask].repeat(N, 1, 1)
         new_obj_shs_rest = self._obj_shs_rest[obj_densify_mask].repeat(N, 1, 1)
         new_obj_opacities = self._obj_opacity[obj_densify_mask].repeat(N, 1)
+        new_obj_actor_id = self._obj_actor_id[obj_densify_mask].repeat(N)
 
         new_deform_shs_scene = self.shs_deform_param_scene[scene_densify_mask].repeat(N, 1, 1)
         new_deform_shs_obj = self.shs_deform_param_obj[obj_densify_mask].repeat(N, 1, 1)
@@ -759,6 +784,7 @@ class GaussianModel:
             new_obj_opacities,
             new_obj_scaling,
             new_obj_rotation,
+            new_obj_actor_id,
 
             new_deform_xyz,
             new_deform_rotation,
@@ -790,6 +816,7 @@ class GaussianModel:
         new_obj_opacities = self._obj_opacity[obj_densify_mask]
         new_obj_scaling = self._obj_scaling[obj_densify_mask]
         new_obj_rotation = self._obj_rotation[obj_densify_mask]
+        new_obj_actor_id = self._obj_actor_id[obj_densify_mask]
 
         new_deform_shs_scene = self.shs_deform_param_scene[scene_densify_mask]
         new_deform_shs_obj = self.shs_deform_param_obj[obj_densify_mask]
@@ -813,6 +840,7 @@ class GaussianModel:
             new_obj_opacities,
             new_obj_scaling,
             new_obj_rotation,
+            new_obj_actor_id,
 
             new_deform_xyz,
             new_deform_rotation,
