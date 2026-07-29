@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "verified_at_utc": "2026-07-28T23:13:29Z",
+  "verified_at_utc": "2026-07-29T02:29:51Z",
   "purpose": "Reproducible preprocessing dependency lock for the AD-GS baseline and GF-DGS experiments",
   "pin_policy": {
     "cutoff_commit": "0d310f462d30dd4d9589aa69a79d8bdbcff0fea8",
@@ -80,11 +80,12 @@
       "adapter_script": {
         "source": "AD-GS-baseline/scripts/semantic.py",
         "source_sha256": "8429c19c6b50591103342d1205391e805866f1745a2d7cb4109e364f2911198f",
-        "pinned_script": "AD-GS/scripts/semantic.py",
-        "pinned_script_sha256": "95bb61ccf383143bdd9b1172841739b6d977bd492bd6bc1d54caf05b256a48e5",
         "copied_path": "/root/autodl-tmp/gfdgs/src/Grounded-SAM-2/semantic.py",
-        "copied_sha256": "95bb61ccf383143bdd9b1172841739b6d977bd492bd6bc1d54caf05b256a48e5",
-        "change_scope": "Adds optional --grounding_revision and passes it unchanged to both Hugging Face from_pretrained calls; behavior without the option is unchanged.",
+        "copied_sha256": "8429c19c6b50591103342d1205391e805866f1745a2d7cb4109e364f2911198f",
+        "copy_is_exact": true,
+        "pinned_variant_preserved_path": "/root/autodl-tmp/gfdgs/src/Grounded-SAM-2/semantic_pinned_revision.py",
+        "pinned_variant_sha256": "95bb61ccf383143bdd9b1172841739b6d977bd492bd6bc1d54caf05b256a48e5",
+        "execution_policy": "Run the exact released adapter. Resolve its unqualified Hugging Face main reference to the locked snapshot through the cache refs/main file rather than changing source code.",
         "pristine_baseline_modified": false
       },
       "weight": {
@@ -113,20 +114,34 @@
         "model_safetensors_sha256": "5548f844c928c4b6f411fa8cbcc2bfa8dbbba437cb1d513975519f93c2a9ed21",
         "status": "exact revision downloaded, file-hashed, model-loaded, and reused in an offline end-to-end run"
       },
+      "readme_legacy_grounding_dino_install": {
+        "package": "groundingdino 0.1.0 editable",
+        "source_path": "/root/autodl-tmp/gfdgs/src/Grounded-SAM-2/grounding_dino",
+        "build_tool_compatibility_pin": "setuptools 69.5.1, wheel 0.43.0",
+        "pin_reason": "setuptools 83.0.0 recursively entered isolated editable build and lost the preinstalled torch dependency",
+        "cuda_extension": "/root/autodl-tmp/gfdgs/src/Grounded-SAM-2/grounding_dino/groundingdino/_C.cpython-310-x86_64-linux-gnu.so",
+        "cuda_extension_bytes": 2483256,
+        "cuda_extension_sha256": "ed1e38f33634038e80a7854f10a3b8643f18f0671107d27f3f30eea6ce801637",
+        "import_result": "passed after importing torch: groundingdino and groundingdino._C load on RTX 4090",
+        "install_log": "/root/autodl-tmp/gfdgs/logs/grounding-dino-readme-install-v2.log",
+        "install_log_sha256": "0f44ba1506f0bc9555dd325144602121f2c28366eb0940f8e6d3f25e2485041d",
+        "runtime_note": "The released AD-GS semantic.py uses Transformers Grounding DINO and does not import this legacy package; it is installed to satisfy the published README preparation contract."
+      },
       "verification": {
         "repository_commit": "passed",
         "weight_size_and_sha256": "passed",
         "environment_import": "passed: Python 3.10.14, torch 2.3.1, CUDA runtime 12.1, NumPy 1.26.4, OpenCV 4.10.0, transformers 4.40.2, supervision 0.22.0",
         "model_load": "passed: SAM2Base 224446642 parameters and GroundingDinoForObjectDetection 232313216 parameters on cuda:0",
-        "end_to_end_sample": "passed offline: detection, image segmentation, video propagation, persistent instance-ID mask, and MP4 output"
+        "released_adapter_copy": "passed: copied semantic.py is byte-identical to pristine AD-GS",
+        "end_to_end_sample": "passed offline with the byte-identical released adapter: detection, image segmentation, video propagation, persistent instance-ID mask, and MP4 output"
       },
       "environment_lock": {
         "server_path": "/root/autodl-tmp/gfdgs/envs/grounded-sam2",
         "conda_explicit": "analysis/manifests/grounded-sam2-linux-64.explicit.txt",
         "conda_explicit_sha256": "5af505afbcfa30f8ca5268d2a0b5ad83473d6828c9e1f333202209053ab69ee1",
         "pip_inventory": "analysis/manifests/grounded-sam2-pip-list.txt",
-        "pip_inventory_sha256": "496c665bfd344637cd3ca63516c1253802446d276187948afb55542065913190",
-        "rebuild_note": "Use the conda explicit file for reconstruction; the pip inventory audits installed versions and the editable SAM-2 package."
+        "pip_inventory_sha256": "3eb27f4627d6055f140638b4efdc92165002346d6355a1a3050c8d81e976a092",
+        "rebuild_note": "Use the conda explicit file for reconstruction, then apply the recorded build-tool compatibility pin and README editable installs; the pip inventory audits the resulting SAM-2 and Grounding DINO environment."
       },
       "cuda_extension": {
         "status": "built and imported",
@@ -144,20 +159,23 @@
         "offline_mode": true,
         "input": "Grounded-SAM-2/notebooks/images/cars.jpg",
         "input_sha256": "76e496e8975c7f21955cbe73aaa027e541fccf5169d50744e14df780717ee52a",
-        "mask": "/root/autodl-tmp/gfdgs/smoke/sam-one-frame/semantic_smoke_cuda/mask_0.npy",
+        "released_adapter_sha256": "8429c19c6b50591103342d1205391e805866f1745a2d7cb4109e364f2911198f",
+        "mask": "/root/autodl-tmp/gfdgs/smoke/sam-one-frame/semantic_readme_20260728/mask_0.npy",
         "mask_bytes": 6750128,
         "mask_sha256": "aac4e7868d7fd911bef39c427ce01be166c4426ec3ed59681447d2f93b634419",
         "mask_shape": [1500, 2250],
         "mask_dtype": "uint16",
         "instance_values": [0, 1, 2, 3],
         "instance_pixel_counts": [2132475, 420625, 22, 821878],
-        "video": "/root/autodl-tmp/gfdgs/smoke/sam-one-frame/semantic_smoke_cuda.mp4",
+        "video": "/root/autodl-tmp/gfdgs/smoke/sam-one-frame/semantic_readme_20260728.mp4",
         "video_bytes": 137397,
         "video_sha256": "15660ed4fd58f197828987fc1403db552e337f8da1b984d3503a252eca819904",
         "sam2_load_log_sha256": "496e92af60e7c537a143ccb8962ddf071d4841b00a5fa9920ffad342144f65de",
         "grounding_dino_load_log_sha256": "342932ac4644dbd04d3ad65c68c62b68c4d3540e968cf093a7edd86ac8718819",
-        "end_to_end_log": "/root/autodl-tmp/gfdgs/logs/grounded-sam2-e2e-smoke-cuda.log",
-        "end_to_end_log_sha256": "42a34d0cb8cc2514d80b9d32c2de8d66a2a1c179ab1410ce35a6aaa3fcf1f99a"
+        "end_to_end_log": "/root/autodl-tmp/gfdgs/logs/semantic-readme-offline-smoke-v3.log",
+        "end_to_end_log_sha256": "b3efdad2638febecebf6f79ae01cd7cc25eb8445cb2aec5452f416976c3bf797",
+        "exitcode_file": "/root/autodl-tmp/gfdgs/logs/semantic-readme-offline-smoke-v3.exitcode",
+        "exitcode_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
       },
       "scope_constraint": "Grounded-SAM2 actor IDs are allowed only for fixed-group Stage-B diagnostics; the final Stage-C annotation-free assignment must not consume them."
     },
