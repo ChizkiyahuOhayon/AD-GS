@@ -24,6 +24,29 @@
   "official_config": "arguments/waymo.py",
   "seed": 0,
   "iterations": 60000,
+  "published_reference": {
+    "source": "ICCV 2025 paper Table 2 and supplementary Section B",
+    "resolution": "1280x1920",
+    "test_split": "one out of every four frames",
+    "eight_scene_overall_metrics": {
+      "PSNR": 33.91,
+      "SSIM": 0.927,
+      "LPIPS(VGG)": 0.228
+    },
+    "moving_object_PSNR": 27.41,
+    "moving_object_mask_dependency": "StreetGS dynamic mask; not produced or evaluated by the public AD-GS render.py"
+  },
+  "comparison_policy": {
+    "report_both_unweighted_scene_mean_and_frame_weighted_mean": true,
+    "primary_table_comparison_assumption": "unweighted scene mean because the paper does not state its aggregation rule",
+    "investigate_if_absolute_delta_exceeds": {
+      "PSNR": 0.3,
+      "SSIM": 0.005,
+      "LPIPS(VGG)": 0.01
+    },
+    "tolerances_are_our_preregistered_audit_rule_not_author_provided": true,
+    "unexpectedly_better_results_require_split_leakage_audit": true
+  },
   "commands_per_scene": {
     "train": "python train.py -c ./arguments/waymo.py -s ./data/waymo/{scene} -m ./output/waymo/{scene} --data_device cuda:0",
     "render_and_evaluate": "python render.py -c ./arguments/waymo.py -m ./output/waymo/{scene} --data_device cuda:0 -v"
