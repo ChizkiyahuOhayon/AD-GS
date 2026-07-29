@@ -1,4 +1,5 @@
 import argparse
+import base64
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
@@ -62,6 +63,21 @@ def sha256_file(path):
     return digest.hexdigest()
 
 
+def validate_download(path, record):
+    expected_size = int(record["size"])
+    if path.stat().st_size != expected_size:
+        raise ValueError("download has wrong size: {}".format(path))
+    expected_md5 = record.get("md5_hash", record.get("md5Hash"))
+    if expected_md5:
+        digest = hashlib.md5()
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(8 * 1024 * 1024), b""):
+                digest.update(chunk)
+        actual_md5 = base64.b64encode(digest.digest()).decode("ascii")
+        if actual_md5 != expected_md5:
+            raise ValueError("download has wrong MD5: {}".format(path))
+
+
 def write_json(path, payload):
     temporary_path = path.with_suffix(path.suffix + ".tmp")
     temporary_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
@@ -116,12 +132,15 @@ def main():
     pending = []
     for item, record in zip(objects, metadata):
         local_path = destination / item["filename"]
-        expected_size = int(record["size"])
         if local_path.exists():
-            if local_path.stat().st_size != expected_size:
-                raise ValueError("existing final file has wrong size: {}".format(local_path))
+            validate_download(local_path, record)
         else:
-            pending.append(item)
+            staged_path = staging / item["download_name"]
+            if staged_path.exists():
+                validate_download(staged_path, record)
+                os.replace(str(staged_path), str(local_path))
+            else:
+                pending.append(item)
     if pending:
         def copy_one(item):
             command = [
@@ -148,9 +167,7 @@ def main():
         metadata_by_scene = {record["scene"]: record for record in metadata}
         for item in pending:
             staged_path = staging / item["download_name"]
-            expected_size = int(metadata_by_scene[item["scene"]]["size"])
-            if staged_path.stat().st_size != expected_size:
-                raise ValueError("staged file has wrong size: {}".format(staged_path))
+            validate_download(staged_path, metadata_by_scene[item["scene"]])
             os.replace(str(staged_path), str(destination / item["filename"]))
 
     receipts = []

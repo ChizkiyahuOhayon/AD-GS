@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import importlib.util
 import json
 import re
@@ -96,6 +98,25 @@ class WaymoPreprocessContractTest(unittest.TestCase):
             [item["download_name"] for item in objects],
             [Path(sequence["gcs_object"]).name for sequence in self.sequences],
         )
+
+    def test_downloader_validates_size_and_official_md5(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "object.tfrecord"
+            path.write_bytes(b"waymo")
+            md5_hash = base64.b64encode(hashlib.md5(b"waymo").digest()).decode(
+                "ascii"
+            )
+            DOWNLOAD_MODULE.validate_download(
+                path, {"size": path.stat().st_size, "md5_hash": md5_hash}
+            )
+            with self.assertRaises(ValueError):
+                DOWNLOAD_MODULE.validate_download(
+                    path, {"size": path.stat().st_size, "md5_hash": "invalid"}
+                )
+            with self.assertRaises(ValueError):
+                DOWNLOAD_MODULE.validate_download(
+                    path, {"size": path.stat().st_size + 1, "md5_hash": md5_hash}
+                )
 
     def test_baseline_protocol_locks_official_eight_scene_run(self):
         protocol = json.loads(BASELINE_PROTOCOL.read_text())
