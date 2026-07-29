@@ -1,4 +1,5 @@
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 import os
@@ -110,7 +111,6 @@ def main():
     if args.metadata_only:
         return
 
-    copy_manifest = evidence_dir / "gcloud-cp-manifest.csv"
     staging = destination / ".gcs-staging"
     staging.mkdir(exist_ok=True)
     pending = []
@@ -123,19 +123,25 @@ def main():
         else:
             pending.append(item)
     if pending:
-        command = [args.gcloud, "storage", "cp"]
-        command.extend(item["uri"] for item in pending)
-        command.extend(
-            [
-                str(staging),
-                "--manifest-path={}".format(copy_manifest),
+        def copy_one(item):
+            command = [
+                args.gcloud,
+                "storage",
+                "cp",
+                item["uri"],
+                str(staging / item["download_name"]),
+                "--manifest-path={}".format(
+                    evidence_dir / "gcloud-cp-manifest-{}.csv".format(item["scene"])
+                ),
                 "--access-token-file={}".format(token_path),
             ]
-        )
-        environment = os.environ.copy()
-        environment["CLOUDSDK_STORAGE_PROCESS_COUNT"] = "1"
-        environment["CLOUDSDK_STORAGE_THREAD_COUNT"] = str(args.parallel)
-        subprocess.run(command, check=True, env=environment)
+            environment = os.environ.copy()
+            environment["CLOUDSDK_STORAGE_PROCESS_COUNT"] = "1"
+            environment["CLOUDSDK_STORAGE_THREAD_COUNT"] = "1"
+            subprocess.run(command, check=True, env=environment)
+
+        with ThreadPoolExecutor(max_workers=args.parallel) as executor:
+            list(executor.map(copy_one, pending))
         metadata_by_scene = {record["scene"]: record for record in metadata}
         for item in pending:
             staged_path = staging / item["download_name"]
