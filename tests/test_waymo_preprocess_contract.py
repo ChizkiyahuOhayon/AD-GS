@@ -48,7 +48,14 @@ class WaymoPreprocessContractTest(unittest.TestCase):
                 (WAYMO_SCRIPTS / "prepare-waymo.sh").read_text()
             )
         ]
-        self.assertEqual(commands, self.sequences)
+        expected = [
+            {
+                key: sequence[key]
+                for key in ("scene", "first_frame", "last_frame", "filename")
+            }
+            for sequence in self.sequences
+        ]
+        self.assertEqual(commands, expected)
 
     def test_all_batch_scripts_cover_exact_scene_set(self):
         for script_name in (
@@ -79,9 +86,15 @@ class WaymoPreprocessContractTest(unittest.TestCase):
         )
         self.assertTrue(
             all(
-                item["uri"].startswith(DOWNLOAD_MODULE.EXPECTED_PREFIX + "/")
+                item["uri"].startswith(
+                    DOWNLOAD_MODULE.EXPECTED_PREFIX + "/validation/segment-"
+                )
                 for item in objects
             )
+        )
+        self.assertEqual(
+            [item["download_name"] for item in objects],
+            [Path(sequence["gcs_object"]).name for sequence in self.sequences],
         )
 
     def test_baseline_protocol_locks_official_eight_scene_run(self):

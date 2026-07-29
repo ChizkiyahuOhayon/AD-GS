@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import subprocess
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -19,11 +20,16 @@ def load_objects(manifest_path):
     objects = []
     for sequence in manifest["sequences"]:
         filename = sequence["filename"]
+        gcs_object = sequence["gcs_object"]
+        if not gcs_object.startswith("validation/segment-"):
+            raise ValueError("refusing unexpected GCS object: {}".format(gcs_object))
         objects.append(
             {
                 "scene": sequence["scene"],
                 "filename": filename,
-                "uri": "{}/{}".format(prefix, filename),
+                "gcs_object": gcs_object,
+                "download_name": Path(gcs_object).name,
+                "uri": "{}/{}".format(prefix, gcs_object),
             }
         )
     if len(objects) != 8 or len({item["uri"] for item in objects}) != 8:
@@ -31,9 +37,20 @@ def load_objects(manifest_path):
     return objects
 
 
-def run_json(command):
-    result = subprocess.run(command, check=True, text=True, capture_output=True)
-    return json.loads(result.stdout)
+def run_json(command, attempts=3):
+    last_error = None
+    for attempt in range(attempts):
+        result = subprocess.run(command, text=True, capture_output=True)
+        if result.returncode == 0:
+            return json.loads(result.stdout)
+        last_error = RuntimeError(
+            "command failed with code {}: {}".format(
+                result.returncode, result.stderr.strip()
+            )
+        )
+        if attempt + 1 < attempts:
+            time.sleep(2 ** attempt)
+    raise last_error
 
 
 def sha256_file(path):
@@ -60,6 +77,7 @@ def main():
     parser.add_argument("--gcloud", required=True)
     parser.add_argument("--access-token-file", required=True)
     parser.add_argument("--parallel", type=int, choices=range(1, 5), default=4)
+    parser.add_argument("--metadata-only", action="store_true")
     args = parser.parse_args()
 
     token_path = Path(args.access_token_file)
@@ -85,25 +103,46 @@ def main():
                 "--access-token-file={}".format(token_path),
             ]
         )
-        if not record.get("name", "").endswith(item["filename"]):
+        if not record.get("name", "").endswith(item["gcs_object"]):
             raise ValueError("metadata name mismatch for {}".format(item["scene"]))
         metadata.append({"scene": item["scene"], "uri": item["uri"], **record})
     write_json(evidence_dir / "object-metadata.json", metadata)
+    if args.metadata_only:
+        return
 
     copy_manifest = evidence_dir / "gcloud-cp-manifest.csv"
-    command = [args.gcloud, "storage", "cp"]
-    command.extend(item["uri"] for item in objects)
-    command.extend(
-        [
-            str(destination),
-            "--manifest-path={}".format(copy_manifest),
-            "--access-token-file={}".format(token_path),
-        ]
-    )
-    environment = os.environ.copy()
-    environment["CLOUDSDK_STORAGE_PROCESS_COUNT"] = "1"
-    environment["CLOUDSDK_STORAGE_THREAD_COUNT"] = str(args.parallel)
-    subprocess.run(command, check=True, env=environment)
+    staging = destination / ".gcs-staging"
+    staging.mkdir(exist_ok=True)
+    pending = []
+    for item, record in zip(objects, metadata):
+        local_path = destination / item["filename"]
+        expected_size = int(record["size"])
+        if local_path.exists():
+            if local_path.stat().st_size != expected_size:
+                raise ValueError("existing final file has wrong size: {}".format(local_path))
+        else:
+            pending.append(item)
+    if pending:
+        command = [args.gcloud, "storage", "cp"]
+        command.extend(item["uri"] for item in pending)
+        command.extend(
+            [
+                str(staging),
+                "--manifest-path={}".format(copy_manifest),
+                "--access-token-file={}".format(token_path),
+            ]
+        )
+        environment = os.environ.copy()
+        environment["CLOUDSDK_STORAGE_PROCESS_COUNT"] = "1"
+        environment["CLOUDSDK_STORAGE_THREAD_COUNT"] = str(args.parallel)
+        subprocess.run(command, check=True, env=environment)
+        metadata_by_scene = {record["scene"]: record for record in metadata}
+        for item in pending:
+            staged_path = staging / item["download_name"]
+            expected_size = int(metadata_by_scene[item["scene"]]["size"])
+            if staged_path.stat().st_size != expected_size:
+                raise ValueError("staged file has wrong size: {}".format(staged_path))
+            os.replace(str(staged_path), str(destination / item["filename"]))
 
     receipts = []
     for item, record in zip(objects, metadata):
@@ -120,12 +159,13 @@ def main():
             {
                 "scene": item["scene"],
                 "uri": item["uri"],
+                "gcs_object": item["gcs_object"],
                 "local_path": str(local_path.resolve()),
                 "size": actual_size,
                 "generation": record.get("generation"),
                 "etag": record.get("etag"),
-                "md5Hash": record.get("md5Hash"),
-                "crc32c": record.get("crc32c"),
+                "md5_hash": record.get("md5_hash", record.get("md5Hash")),
+                "crc32c_hash": record.get("crc32c_hash", record.get("crc32c")),
                 "local_sha256": sha256_file(local_path),
             }
         )
