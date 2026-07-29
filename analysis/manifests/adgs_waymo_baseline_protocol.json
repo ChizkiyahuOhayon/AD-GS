@@ -1,0 +1,55 @@
+{
+  "protocol": "AD-GS Waymo pristine baseline reproduction",
+  "upstream_repository": "https://github.com/gurutvapatle/AD-GS.git",
+  "upstream_commit": "9a208512e49c8ddbaa20387921d9648adcd21cb4",
+  "dataset_manifest": "analysis/manifests/waymo_adgs_8.json",
+  "dataset_release": "Waymo Open Dataset Perception v1.4.1",
+  "scenes": [
+    "scene006",
+    "scene026",
+    "scene090",
+    "scene105",
+    "scene108",
+    "scene134",
+    "scene150",
+    "scene181"
+  ],
+  "environment": {
+    "gpu": "NVIDIA GeForce RTX 4090",
+    "python": "3.7.16",
+    "pytorch": "1.13.1+cu117",
+    "torchvision": "0.14.1",
+    "cuda_runtime": "11.7"
+  },
+  "official_config": "arguments/waymo.py",
+  "seed": 0,
+  "iterations": 60000,
+  "commands_per_scene": {
+    "train": "python train.py -c ./arguments/waymo.py -s ./data/waymo/{scene} -m ./output/waymo/{scene} --data_device cuda:0",
+    "render_and_evaluate": "python render.py -c ./arguments/waymo.py -m ./output/waymo/{scene} --data_device cuda:0 -v"
+  },
+  "hard_gate": {
+    "repository_must_be_clean_before_and_after": true,
+    "short_run_is_reproduction": false,
+    "all_scenes_required": true,
+    "required_per_scene_artifacts": [
+      "training log",
+      "point_cloud/iteration_60000/point_cloud.ply",
+      "point_cloud/iteration_60000/env.pth",
+      "test/ours_60000/renders",
+      "test/ours_60000/gt",
+      "train/ours_60000/renders",
+      "train/ours_60000/gt",
+      "results.json",
+      "results-train.json"
+    ],
+    "required_metrics": [
+      "SSIM",
+      "PSNR",
+      "LPIPS(VGG)",
+      "LPIPS(ALEX)",
+      "FPS"
+    ],
+    "method_integration_allowed_before_pass": false
+  }
+}

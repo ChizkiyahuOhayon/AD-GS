@@ -7,6 +7,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "analysis" / "manifests" / "waymo_adgs_8.json"
+BASELINE_PROTOCOL = (
+    ROOT / "analysis" / "manifests" / "adgs_waymo_baseline_protocol.json"
+)
 WAYMO_SCRIPTS = ROOT / "scripts" / "waymo"
 DOWNLOAD_SCRIPT = WAYMO_SCRIPTS / "download_manifest.py"
 DOWNLOAD_SPEC = importlib.util.spec_from_file_location("download_manifest", DOWNLOAD_SCRIPT)
@@ -72,6 +75,20 @@ class WaymoPreprocessContractTest(unittest.TestCase):
                 item["uri"].startswith(DOWNLOAD_MODULE.EXPECTED_PREFIX + "/")
                 for item in objects
             )
+        )
+
+    def test_baseline_protocol_locks_official_eight_scene_run(self):
+        protocol = json.loads(BASELINE_PROTOCOL.read_text())
+        self.assertEqual(protocol["scenes"], self.expected_scenes)
+        self.assertEqual(
+            protocol["upstream_commit"],
+            "9a208512e49c8ddbaa20387921d9648adcd21cb4",
+        )
+        self.assertEqual(protocol["iterations"], 60_000)
+        self.assertEqual(protocol["seed"], 0)
+        self.assertTrue(protocol["hard_gate"]["all_scenes_required"])
+        self.assertFalse(
+            protocol["hard_gate"]["method_integration_allowed_before_pass"]
         )
 
 
