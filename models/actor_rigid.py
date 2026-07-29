@@ -74,9 +74,10 @@ def heading_from_actor_centers(
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Derive unwrapped yaw from horizontal center tangents.
 
-    Low-speed samples copy the heading of the nearest sample whose speed is at
-    least ``speed_threshold``.  ``actor_centers`` must be world-space centers,
-    not pose translations tied to an arbitrary canonical origin.
+    Low-speed samples copy the most recent moving heading.  Leading low-speed
+    samples, which have no history, copy the first future moving heading.
+    ``actor_centers`` must be world-space centers, not pose translations tied
+    to an arbitrary canonical origin.
     """
     if actor_centers.ndim != 3 or actor_centers.shape[-1] != 3:
         raise ValueError("actor_centers must have shape [T, K, 3]")
@@ -116,10 +117,14 @@ def heading_from_actor_centers(
         moving_indices = torch.nonzero(moving[:, actor_index], as_tuple=False).flatten()
         if moving_indices.numel() == 0:
             raise ValueError("actor {} has no moving heading sample".format(actor_index))
-        nearest = torch.argmin(
-            torch.abs(times[:, None] - times[moving_indices][None, :]), dim=1
-        )
-        filled = raw_heading[moving_indices[nearest], actor_index]
+        first_moving = int(moving_indices[0])
+        last_valid_heading = raw_heading[first_moving, actor_index]
+        filled_values = []
+        for time_index in range(actor_centers.shape[0]):
+            if bool(moving[time_index, actor_index]):
+                last_valid_heading = raw_heading[time_index, actor_index]
+            filled_values.append(last_valid_heading)
+        filled = torch.stack(filled_values)
         unwrapped = [filled[0]]
         for time_index in range(1, actor_centers.shape[0]):
             difference = filled[time_index] - unwrapped[-1]

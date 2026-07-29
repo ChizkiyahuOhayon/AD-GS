@@ -66,7 +66,7 @@ class ActorRigidTest(unittest.TestCase):
             torch.allclose(world_lower_extent, road_height, atol=1e-6, rtol=0.0)
         )
 
-    def test_heading_uses_nearest_moving_sample_through_stop(self):
+    def test_heading_uses_previous_moving_sample_through_stop(self):
         centers = torch.tensor(
             [
                 [[0.0, 0.0, 0.0]],
@@ -88,6 +88,28 @@ class ActorRigidTest(unittest.TestCase):
         self.assertEqual(moving[:, 0].tolist(), [True, True, True, False, False])
         heading.sum().backward()
         self.assertIsNotNone(centers.grad)
+
+    def test_heading_does_not_look_ahead_when_future_sample_is_closer(self):
+        centers = torch.tensor(
+            [
+                [[0.0, 0.0, 0.0]],
+                [[1.0, 0.0, 0.0]],
+                [[2.0, 0.0, 0.0]],
+                [[2.0, 0.0, 0.0]],
+                [[2.0, 0.0, 0.0]],
+                [[2.0, 1.0, 0.0]],
+            ]
+        )
+        times = torch.tensor([0.0, 1.0, 2.0, 10.0, 10.1, 10.2])
+
+        heading, moving = heading_from_actor_centers(
+            centers, times, speed_threshold=0.05
+        )
+
+        self.assertFalse(bool(moving[3, 0]))
+        self.assertTrue(bool(moving[4, 0]))
+        self.assertAlmostEqual(float(heading[3, 0]), 0.0, places=6)
+        self.assertAlmostEqual(float(heading[4, 0]), math.pi / 2.0, places=6)
 
     def test_heading_rejects_actor_without_motion(self):
         centers = torch.zeros((3, 2, 3))
