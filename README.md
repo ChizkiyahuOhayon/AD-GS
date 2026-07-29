@@ -151,6 +151,14 @@ waymo
 `-- individual_files_validation_segment-8398516118967750070_3958_000_3978_000_with_camera_labels.tfrecord  # scene181
 ```
 
+For an auditable, resumable download of this exact manifest, use:
+
+```shell
+python scripts/waymo/download_manifest.py \
+    analysis/manifests/waymo_adgs_8.json <destination> <evidence directory> \
+    --gcloud <path to gcloud> --access-token-file <path to access token> --parallel 4
+```
+
 We use the eight scenes selected by [StreetGS](https://github.com/zju3dv/street_gaussians). Use the following instruction to preprocess the dataset.
 
 ```shell

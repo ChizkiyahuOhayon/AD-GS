@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import re
 import unittest
@@ -7,6 +8,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "analysis" / "manifests" / "waymo_adgs_8.json"
 WAYMO_SCRIPTS = ROOT / "scripts" / "waymo"
+DOWNLOAD_SCRIPT = WAYMO_SCRIPTS / "download_manifest.py"
+DOWNLOAD_SPEC = importlib.util.spec_from_file_location("download_manifest", DOWNLOAD_SCRIPT)
+DOWNLOAD_MODULE = importlib.util.module_from_spec(DOWNLOAD_SPEC)
+DOWNLOAD_SPEC.loader.exec_module(DOWNLOAD_MODULE)
 
 
 class WaymoPreprocessContractTest(unittest.TestCase):
@@ -54,6 +59,20 @@ class WaymoPreprocessContractTest(unittest.TestCase):
         self.assertEqual(len(flow_commands), len(self.expected_scenes))
         for command in flow_commands:
             self.assertTrue(command.endswith('--cotracker_repo "$1"'), command)
+
+    def test_downloader_builds_exact_v141_object_list(self):
+        objects = DOWNLOAD_MODULE.load_objects(MANIFEST)
+        self.assertEqual([item["scene"] for item in objects], self.expected_scenes)
+        self.assertEqual(
+            [item["filename"] for item in objects],
+            [sequence["filename"] for sequence in self.sequences],
+        )
+        self.assertTrue(
+            all(
+                item["uri"].startswith(DOWNLOAD_MODULE.EXPECTED_PREFIX + "/")
+                for item in objects
+            )
+        )
 
 
 if __name__ == "__main__":
