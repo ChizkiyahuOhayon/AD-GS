@@ -77,7 +77,7 @@ def main():
     parser.add_argument("evidence_dir")
     parser.add_argument("--gcloud", required=True)
     parser.add_argument("--access-token-file", required=True)
-    parser.add_argument("--parallel", type=int, choices=range(1, 5), default=4)
+    parser.add_argument("--parallel", type=int, choices=range(1, 9), default=4)
     parser.add_argument("--metadata-only", action="store_true")
     args = parser.parse_args()
 
