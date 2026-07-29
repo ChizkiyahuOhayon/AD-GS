@@ -1,6 +1,6 @@
 {
   "protocol": "AD-GS Waymo pristine baseline reproduction",
-  "upstream_repository": "https://github.com/gurutvapatle/AD-GS.git",
+  "upstream_repository": "https://github.com/JiaweiXu8/AD-GS.git",
   "upstream_commit": "9a208512e49c8ddbaa20387921d9648adcd21cb4",
   "dataset_manifest": "analysis/manifests/waymo_adgs_8.json",
   "dataset_release": "Waymo Open Dataset Perception v1.4.1",
@@ -51,12 +51,28 @@
     "train": "python train.py -c ./arguments/waymo.py -s ./data/waymo/{scene} -m ./output/waymo/{scene} --data_device cuda:0",
     "render_and_evaluate": "python render.py -c ./arguments/waymo.py -m ./output/waymo/{scene} --data_device cuda:0 -v"
   },
+  "isolated_execution": {
+    "reason": "The upstream commit has no .gitignore; keep data, outputs, logs, and bytecode outside the pristine repository.",
+    "python_environment_variable": "PYTHONDONTWRITEBYTECODE=1",
+    "train": "{python} {baseline_repo}/train.py -c {baseline_repo}/arguments/waymo.py -s {source_root}/{scene} -m {run_root}/output/{scene} --data_device cuda:0",
+    "render_and_evaluate": "{python} {baseline_repo}/render.py -c {baseline_repo}/arguments/waymo.py -m {run_root}/output/{scene} --data_device cuda:0 -v",
+    "train_log": "{run_root}/logs/{scene}.train.log",
+    "train_exitcode": "{run_root}/logs/{scene}.train.exitcode",
+    "render_log": "{run_root}/logs/{scene}.render.log",
+    "render_exitcode": "{run_root}/logs/{scene}.render.exitcode"
+  },
   "hard_gate": {
     "repository_must_be_clean_before_and_after": true,
     "short_run_is_reproduction": false,
     "all_scenes_required": true,
     "required_per_scene_artifacts": [
-      "training log",
+      "cfg_args",
+      "cameras.json",
+      "input.ply",
+      "logs/{scene}.train.log",
+      "logs/{scene}.train.exitcode",
+      "logs/{scene}.render.log",
+      "logs/{scene}.render.exitcode",
       "point_cloud/iteration_60000/point_cloud.ply",
       "point_cloud/iteration_60000/env.pth",
       "test/ours_60000/renders",

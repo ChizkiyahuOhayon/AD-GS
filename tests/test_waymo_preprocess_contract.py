@@ -1,8 +1,11 @@
 import importlib.util
 import json
 import re
+import tempfile
 import unittest
 from pathlib import Path
+
+import numpy as np
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,6 +18,10 @@ DOWNLOAD_SCRIPT = WAYMO_SCRIPTS / "download_manifest.py"
 DOWNLOAD_SPEC = importlib.util.spec_from_file_location("download_manifest", DOWNLOAD_SCRIPT)
 DOWNLOAD_MODULE = importlib.util.module_from_spec(DOWNLOAD_SPEC)
 DOWNLOAD_SPEC.loader.exec_module(DOWNLOAD_MODULE)
+VERIFY_SCRIPT = WAYMO_SCRIPTS / "verify_baseline.py"
+VERIFY_SPEC = importlib.util.spec_from_file_location("verify_baseline", VERIFY_SCRIPT)
+VERIFY_MODULE = importlib.util.module_from_spec(VERIFY_SPEC)
+VERIFY_SPEC.loader.exec_module(VERIFY_MODULE)
 
 
 class WaymoPreprocessContractTest(unittest.TestCase):
@@ -84,12 +91,65 @@ class WaymoPreprocessContractTest(unittest.TestCase):
             protocol["upstream_commit"],
             "9a208512e49c8ddbaa20387921d9648adcd21cb4",
         )
+        self.assertEqual(
+            protocol["upstream_repository"],
+            "https://github.com/JiaweiXu8/AD-GS.git",
+        )
         self.assertEqual(protocol["iterations"], 60_000)
         self.assertEqual(protocol["seed"], 0)
         self.assertTrue(protocol["hard_gate"]["all_scenes_required"])
         self.assertFalse(
             protocol["hard_gate"]["method_integration_allowed_before_pass"]
         )
+
+    def test_baseline_auditor_checks_exact_split_and_artifacts(self):
+        protocol = json.loads(BASELINE_PROTOCOL.read_text())
+        scene = protocol["scenes"][0]
+        iteration = protocol["iterations"]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "source" / scene
+            output = root / "output" / scene
+            logs = root / "logs"
+            source.mkdir(parents=True)
+            logs.mkdir()
+            is_val = np.asarray([False, False, False, False, True, False])
+            np.savez(source / "cameras.npz", is_val_list=is_val)
+            for relative in ("cfg_args", "cameras.json", "input.ply"):
+                path = output / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("iterations={}\n".format(iteration))
+            checkpoint = output / "point_cloud" / "iteration_{}".format(iteration)
+            checkpoint.mkdir(parents=True)
+            (checkpoint / "point_cloud.ply").write_text("ply")
+            (checkpoint / "env.pth").write_text("weights")
+            for split, count in (("test", 1), ("train", 5)):
+                for folder in ("renders", "gt"):
+                    path = output / split / "ours_{}".format(iteration) / folder
+                    path.mkdir(parents=True)
+                    for index in range(count):
+                        (path / "{:05d}.png".format(index)).write_text("png")
+            metrics = {
+                "ours_{}".format(iteration): {
+                    name: 1.0 for name in protocol["hard_gate"]["required_metrics"]
+                }
+            }
+            (output / "results.json").write_text(json.dumps(metrics))
+            (output / "results-train.json").write_text(json.dumps(metrics))
+            (logs / "{}.train.log".format(scene)).write_text("Training complete.\n")
+            (logs / "{}.render.log".format(scene)).write_text("LPIPS(VGG)\n")
+            (logs / "{}.train.exitcode".format(scene)).write_text("0\n")
+            (logs / "{}.render.exitcode".format(scene)).write_text("0\n")
+
+            audit = VERIFY_MODULE.audit_scene(
+                protocol, scene, root / "source", root / "output", logs
+            )
+            self.assertTrue(audit["passed"], audit["errors"])
+            (checkpoint / "env.pth").unlink()
+            audit = VERIFY_MODULE.audit_scene(
+                protocol, scene, root / "source", root / "output", logs
+            )
+            self.assertFalse(audit["passed"])
 
 
 if __name__ == "__main__":
