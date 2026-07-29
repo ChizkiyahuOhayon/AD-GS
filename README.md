@@ -185,7 +185,7 @@ conda activate AD-GS
 bash scripts/waymo/segment-pcd.sh
 
 # optical flow
-bash scripts/waymo/prepare-flow.sh
+bash scripts/waymo/prepare-flow.sh <path to pinned local CoTracker repository>
 
 # colmap
 bash scripts/waymo/prepare-colmap.sh
