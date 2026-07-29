@@ -65,3 +65,67 @@ def world_points_from_actor_pose(
     world_y = sine * canonical_xyz[:, 0] + cosine * canonical_xyz[:, 1]
     rotated = torch.stack((world_x, world_y, canonical_xyz[:, 2]), dim=-1)
     return rotated + translations
+
+
+def heading_from_actor_centers(
+    actor_centers: torch.Tensor,
+    times: torch.Tensor,
+    speed_threshold: float,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Derive unwrapped yaw from horizontal center tangents.
+
+    Low-speed samples copy the heading of the nearest sample whose speed is at
+    least ``speed_threshold``.  ``actor_centers`` must be world-space centers,
+    not pose translations tied to an arbitrary canonical origin.
+    """
+    if actor_centers.ndim != 3 or actor_centers.shape[-1] != 3:
+        raise ValueError("actor_centers must have shape [T, K, 3]")
+    if actor_centers.shape[0] < 2:
+        raise ValueError("at least two time samples are required")
+    if times.ndim != 1 or times.shape[0] != actor_centers.shape[0]:
+        raise ValueError("times must have shape [T]")
+    if not torch.is_floating_point(actor_centers) or not torch.is_floating_point(times):
+        raise ValueError("actor_centers and times must use floating-point dtypes")
+    if times.device != actor_centers.device:
+        raise ValueError("actor_centers and times must be on the same device")
+    if not bool(torch.isfinite(actor_centers).all()) or not bool(
+        torch.isfinite(times).all()
+    ):
+        raise ValueError("actor_centers and times must be finite")
+    if not bool(torch.all(times[1:] > times[:-1])):
+        raise ValueError("times must be strictly increasing")
+    if speed_threshold <= 0.0:
+        raise ValueError("speed_threshold must be positive")
+
+    velocity_xy = torch.empty_like(actor_centers[..., :2])
+    segment_velocity = (actor_centers[1:, :, :2] - actor_centers[:-1, :, :2]) / (
+        times[1:] - times[:-1]
+    )[:, None, None]
+    velocity_xy[0] = segment_velocity[0]
+    velocity_xy[-1] = segment_velocity[-1]
+    if actor_centers.shape[0] > 2:
+        velocity_xy[1:-1] = (
+            actor_centers[2:, :, :2] - actor_centers[:-2, :, :2]
+        ) / (times[2:] - times[:-2])[:, None, None]
+
+    speed = torch.sqrt(torch.sum(velocity_xy.square(), dim=-1))
+    moving = speed >= speed_threshold
+    raw_heading = torch.atan2(velocity_xy[..., 1], velocity_xy[..., 0])
+    headings = []
+    for actor_index in range(actor_centers.shape[1]):
+        moving_indices = torch.nonzero(moving[:, actor_index], as_tuple=False).flatten()
+        if moving_indices.numel() == 0:
+            raise ValueError("actor {} has no moving heading sample".format(actor_index))
+        nearest = torch.argmin(
+            torch.abs(times[:, None] - times[moving_indices][None, :]), dim=1
+        )
+        filled = raw_heading[moving_indices[nearest], actor_index]
+        unwrapped = [filled[0]]
+        for time_index in range(1, actor_centers.shape[0]):
+            difference = filled[time_index] - unwrapped[-1]
+            wrapped_difference = torch.atan2(
+                torch.sin(difference), torch.cos(difference)
+            )
+            unwrapped.append(unwrapped[-1] + wrapped_difference)
+        headings.append(torch.stack(unwrapped))
+    return torch.stack(headings, dim=1), moving
