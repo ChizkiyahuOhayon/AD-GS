@@ -137,7 +137,10 @@ def main():
             ]
             environment = os.environ.copy()
             environment["CLOUDSDK_STORAGE_PROCESS_COUNT"] = "1"
-            environment["CLOUDSDK_STORAGE_THREAD_COUNT"] = "1"
+            environment["CLOUDSDK_STORAGE_THREAD_COUNT"] = "4"
+            environment["CLOUDSDK_STORAGE_SLICED_OBJECT_DOWNLOAD_THRESHOLD"] = "50Mi"
+            environment["CLOUDSDK_STORAGE_SLICED_OBJECT_DOWNLOAD_COMPONENT_SIZE"] = "64Mi"
+            environment["CLOUDSDK_STORAGE_SLICED_OBJECT_DOWNLOAD_MAX_COMPONENTS"] = "4"
             subprocess.run(command, check=True, env=environment)
 
         with ThreadPoolExecutor(max_workers=args.parallel) as executor:
