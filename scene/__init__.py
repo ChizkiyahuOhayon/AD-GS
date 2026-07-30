@@ -109,6 +109,10 @@ class Scene:
                 self.frame_gap,
                 args.default_order_downsample_ratio,
             )
+        if self.gaussians.oracle_contact:
+            self.gaussians.configure_oracle_contact(
+                os.path.join(args.source_path, "points3d.ply")
+            )
 
     def save(self, iteration):
         point_cloud_path = os.path.join(self.model_path, "point_cloud/iteration_{}".format(iteration))

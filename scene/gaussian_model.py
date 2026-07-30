@@ -23,6 +23,7 @@ from utils.general_utils import strip_symmetric, build_scaling_rotation, quatern
 from pytorch3d.ops import knn_points
 from utils.func_utils import *
 from utils.system_utils import put_color
+from models.oracle_contact import build_oracle_contact_tracks, project_actor_contact
 
 class GaussianModel:
 
@@ -43,7 +44,7 @@ class GaussianModel:
 
         self.rotation_activation = torch.nn.functional.normalize
 
-    def __init__(self, sh_degree : int, order_args):
+    def __init__(self, sh_degree : int, order_args, oracle_contact=False):
         self.active_sh_degree = 0
         self.max_sh_degree = sh_degree
         self._scene_xyz = torch.empty(0)
@@ -83,6 +84,9 @@ class GaussianModel:
         self.gs_time_sigma = torch.empty(0)
         self.obj_near_idx = torch.empty(0)
         self.frame_gap = None
+        self.oracle_contact = oracle_contact
+        self.oracle_contact_tracks = {}
+        self.last_contact_diagnostics = None
 
         self.setup_functions()
 
@@ -175,18 +179,54 @@ class GaussianModel:
     def get_pts_num(self):
         return self.get_scene_pts_num + self.get_obj_pts_num
     
-    def get_deformed_xyz(self, t):
+    def configure_oracle_contact(self, point_cloud_path):
+        vertices = PlyData.read(point_cloud_path)['vertex']
+        xyz = np.stack(
+            (np.asarray(vertices['x']), np.asarray(vertices['y']), np.asarray(vertices['z'])),
+            axis=1,
+        )
+        times = np.asarray(vertices['t']).copy()
+        times = (times - np.min(times)) / (np.max(times) - np.min(times))
+        actor_ids = torch.as_tensor(np.asarray(vertices['obj']).copy(), dtype=torch.long)
+        obj_mask = actor_ids > 0
+        self.oracle_contact_tracks = build_oracle_contact_tracks(
+            torch.as_tensor(xyz, dtype=torch.float32)[obj_mask],
+            torch.as_tensor(times, dtype=torch.float32)[obj_mask],
+            actor_ids[obj_mask],
+        )
+        print("Oracle contact stable actors:", len(self.oracle_contact_tracks))
+
+    def _get_deformed_xyz_and_contact(self, t):
         obj_xyz = self.get_obj_xyz
 
         # per partical deformation
         obj_xyz = obj_xyz + get_func_result(t, self.xyz_deform_param, self.order_args['xyz'])
 
-        scene_xyz = self.get_scene_xyz
-        xyz = torch.cat([scene_xyz, obj_xyz], dim=0)
-
         # background
-        xyz = xyz + get_func_result(t, self.background_deform_param, self.order_args['background'])  # 1, 3
+        background = get_func_result(t, self.background_deform_param, self.order_args['background'])
+        scene_xyz = self.get_scene_xyz + background
+        obj_xyz = obj_xyz + background
 
+        diagnostics = {
+            'actor_count': 0,
+            'mean_abs_before': obj_xyz.new_zeros(()),
+            'mean_abs_after': obj_xyz.new_zeros(()),
+        }
+        if self.oracle_contact:
+            obj_rotation = self.get_deformed_rotation(t)[self.get_scene_pts_num:]
+            obj_xyz, diagnostics = project_actor_contact(
+                obj_xyz,
+                self.get_obj_scaling,
+                obj_rotation,
+                self.get_obj_actor_id,
+                t,
+                self.oracle_contact_tracks,
+            )
+
+        return torch.cat([scene_xyz, obj_xyz], dim=0), diagnostics
+
+    def get_deformed_xyz(self, t):
+        xyz, self.last_contact_diagnostics = self._get_deformed_xyz_and_contact(t)
         return xyz
     
     def get_deformed_rotation(self, t, bias_rot=None):
@@ -219,7 +259,8 @@ class GaussianModel:
         return opacity
 
     def get_deformed_pkg(self, t):
-        xyz = self.get_deformed_xyz(t)
+        xyz, contact = self._get_deformed_xyz_and_contact(t)
+        self.last_contact_diagnostics = contact
         rotation = self.get_deformed_rotation(t)
         shs = self.get_deformed_shs(t)
         
@@ -233,6 +274,9 @@ class GaussianModel:
             'rotation': rotation,
             'shs': shs,
             'opacity': opacity,
+            'contact_actor_count': contact['actor_count'],
+            'contact_mean_abs_before': contact['mean_abs_before'],
+            'contact_mean_abs_after': contact['mean_abs_after'],
         }
     
     def get_flow_proj(self, flow_pkg, dist=None):
