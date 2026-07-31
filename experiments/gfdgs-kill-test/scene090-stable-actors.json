@@ -1,0 +1,9 @@
+{
+  "scene": "scene090",
+  "source": "training-only initialization LiDAR in points3d.ply",
+  "min_points_per_frame": 20,
+  "min_frames": 5,
+  "max_centroid_jump_metres_per_frame": 10.0,
+  "lower_height_quantile": 0.05,
+  "actor_ids": [1, 3, 4, 5, 8, 23, 26, 42, 55, 73, 79, 98, 107]
+}
