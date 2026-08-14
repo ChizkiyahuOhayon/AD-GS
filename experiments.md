@@ -107,6 +107,41 @@ first falsifiable dependency is the teacher output contract, not an AD-GS loss.
 Track extraction, coordinate alignment, intervention consensus, and motion
 transfer remain unproven. We therefore proceed to EXP-001 only.
 
+## DATA-001 — Waymo scene006 acquisition and AD-GS preprocessing
+
+This preparation is locked before downloading or preprocessing on the new
+server. It is not a rendering experiment and consumes no evaluation metric.
+
+### Locked source and output
+
+- Source object:
+  `gs://waymo_open_dataset_v_1_4_1/individual_files/individual_files_validation_segment-10448102132863604198_472_000_492_000_with_camera_labels.tfrecord`.
+- Access requires the user's accepted Waymo license and authenticated Google
+  Cloud account; credentials and access tokens are never committed or logged.
+- Raw and processed data live below `~/dy/nas/Trust4D-GS/waymo/`, outside both
+  Git repositories. Downloads record remote size and local SHA-256.
+- Preprocessor: `scripts/waymo/waymo.py`, SHA-256
+  `f87905fb7c867d572679a6b7ea92dbe4b085d5a4a695f70ee1776c2058188bd6`.
+- Exact arguments: `--first_frame 0 --last_frame 85 --use_color`; front camera
+  remains the released default.
+- A separate CPU-only Python 3.10 environment uses TensorFlow 2.11.0 and
+  `waymo-open-dataset-tf-2-11-0==1.6.1`; it never shares the DGGT or AD-GS
+  training environment.
+
+### Data pass gate
+
+- Exactly 86 decodable images and 86 entries in `R`, `T`, `K`, `time_stamps`,
+  and `is_val_list`.
+- Timestamps are exactly 0 through 85; validation indices are exactly
+  `4, 8, ..., 84`, matching released `get_val_frames(..., test_every=4)`.
+- Camera arrays contain only finite values. `points3d.ply` is nonempty and has
+  a positive vertex count with `x`, `y`, `z`, and `t` properties.
+- The first four chronological training images are selected only through the
+  locked split selector and every artifact SHA-256 is recorded.
+
+Failure stops DATA-001; a partial scene cannot enter EXP-001 or baseline
+training.
+
 ## EXP-001 — A40 DGGT single-clip contract probe
 
 ### Question
@@ -148,6 +183,11 @@ memory margin for intervention export?
   commit. Add `scikit-learn` explicitly because `SkyGaussian.__init__` imports
   it although the released `requirements.txt` omits it. The CUDA wheel index is
   selected only after recording the A40 driver version.
+- Use the official PyTorch CUDA 12.1 wheel index. Install the precompiled
+  CPython 3.10 Linux wheel
+  `gsplat-1.5.3+pt24cu121-cp310-cp310-linux_x86_64.whl`, SHA-256
+  `0493bab68ed5fc71f4ce8bfc2be03b584d8a41a06a6d9362e09a795340f8c488`,
+  rather than compiling against the server's CUDA 11.8 `nvcc`.
 - `probe_dggt.py` rejects any installed PyTorch, torchvision, or gsplat version
   that differs from the pins above (a CUDA local-version suffix is allowed),
   and rejects a missing scikit-learn installation.
