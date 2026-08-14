@@ -565,10 +565,25 @@ only after EXP-001 confirms the released output shapes and A40 memory margin.
   every-fourth-frame split. No held-out RGB enters DGGT.
 - Query selection uses only the released Grounded-SAM object prior at frame
   `a`. Apply the exact DGGT width-518 resize and center crop to the mask with
-  nearest-neighbor sampling, erode by five output pixels, and intersect it with
-  a 16-pixel grid. Sort candidates by `(y,x)` and, when more than 128 remain,
-  take 128 equally spaced ranks including both endpoints. If fewer than 16
-  remain, the window is invalid and retained as a coverage failure.
+  nearest-neighbor sampling. Define five-pixel erosion as five iterations of a
+  full `3 x 3` binary neighborhood with false padding (equivalently, every
+  retained pixel has Chebyshev distance greater than five from the transformed
+  mask boundary). Intersect the result with the centers of fixed `16 x 16`
+  output cells: `x = 8 + 16j`, `y = 8 + 16i`, while each coordinate is in
+  bounds. These erosion and grid-origin choices are project conventions because
+  the source code does not specify a unique mask-query grid. Sort candidates by
+  `(y,x)` and, when more than 128 remain, take the nearest integer ranks from
+  `linspace(0, N-1, 128)` using NumPy round-to-nearest-even; this includes both
+  endpoints and must yield 128 unique ranks. If fewer than 16 remain, the
+  window is invalid and retained as a coverage failure.
+- Before any evaluation label is opened, one CPU manifest builder must verify
+  the exact three scene names, official frame counts, every-fourth validation
+  flags, and that every intervention frame is train-only. It records hashes of
+  `cameras.npz`, all referenced RGB files, the four anchor semantic masks, the
+  complete crop transform, candidate/support counts, selected integer `(x,y)`
+  queries, and the exact intervention indices. The output directory must be
+  new and outside Git; its manifest and artifact hashes become immutable
+  inputs to teacher export.
 - Waymo laser labels, object IDs, boxes, and velocities are evaluation-only.
   They may assign an already-selected query to an actor and define its target
   motion after every teacher output is frozen; they may not select queries,
