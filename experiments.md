@@ -120,11 +120,21 @@ memory margin for intervention export?
   real processed-data layout.
 - DGGT checkpoint: official `model_latest_waymo.pt`, with its byte size and
   SHA-256 recorded before execution.
+- Source metadata observed before download: Hugging Face repo revision
+  `735ac9a6486057b1eb886c33a8c6dc79e0b43214`, linked size
+  `5,411,266,466` bytes, and linked ETag
+  `352652738a5480b8d3ee9dd521ce07b528e5a297bd3feca4d07427dac6d87def`.
+  The downloaded file must match the size; its locally computed SHA-256 is the
+  integrity record rather than an assumed interpretation of the ETag.
 
 ### Locked execution
 
 - DGGT commit: `a3276d2bbe4cbb03bcc117830b1836110a27adeb`.
 - PyTorch 2.4.1 / torchvision 0.19.1, separate `dggt` environment.
+- Pin `gsplat==1.5.3`, the last PyPI release preceding the locked DGGT source
+  commit. Add `scikit-learn` explicitly because `SkyGaussian.__init__` imports
+  it although the released `requirements.txt` omits it. The CUDA wheel index is
+  selected only after recording the A40 driver version.
 - One forward pass after one warm-up pass, `model.eval()` and
   `torch.inference_mode()`.
 - No diffusion, TAPIP3D, AD-GS, training, or query points.
