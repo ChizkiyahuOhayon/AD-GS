@@ -480,8 +480,12 @@ treatments?
 
 - Train and render with the official AD-GS source at commit
   `9a208512e49c8ddbaa20387921d9648adcd21cb4`. The research branch may add only
-  `experiments.md`, `server.md`, `scripts/trust4d/`, and `tests/`; any modified
-  or deleted official file fails preflight.
+  `experiments.md`, `server.md`, `scripts/trust4d/`, `tests/`, and the
+  source/code-grounding artifact under
+  `research/ara/trust4d_teacher_reliability/`; any modified or deleted official
+  file fails preflight. The added research artifact is documentation and
+  CPU-testable reference mathematics only; it is neither imported by nor
+  available on the AD-GS train/render path.
 - Require a clean research worktree, a DATA-002 pass result produced from the
   exact scene path, and an ENV-001 smoke-test pass in the named
   `trust4d-adgs-baseline` environment.
