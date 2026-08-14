@@ -91,7 +91,7 @@ training.
 | ENV-001 | locked | not started | Build a pinned, isolated AD-GS train/render environment |
 | EXP-001 | locked | inventory complete; Waymo path unresolved; no GPU run | DGGT single-clip output/VRAM contract |
 | BASE-001 | locked | not started; blocked by DATA-002 and ENV-001 | Reproduce the released 60k AD-GS scene006 baseline on one A40 |
-| EXP-002 | draft; do not run | blocked by EXP-001 | intervention disagreement versus evaluation-only motion error |
+| EXP-002 | locked | blocked by EXP-001 and three-scene image/semantic preparation | intervention disagreement versus evaluation-only actor motion error |
 
 ## EXP-000 — source and protocol audit
 
@@ -120,7 +120,10 @@ server. It is not a rendering experiment and consumes no evaluation metric.
 ### Locked source and output
 
 - Source object:
-  `gs://waymo_open_dataset_v_1_4_1/individual_files/individual_files_validation_segment-10448102132863604198_472_000_492_000_with_camera_labels.tfrecord`.
+  `gs://waymo_open_dataset_v_1_4_1/individual_files/validation/segment-10448102132863604198_472_000_492_000_with_camera_labels.tfrecord`.
+  The released README's longer
+  `individual_files_validation_segment-...` string is the required local
+  filename, not the GCS object key. Keep the two names distinct.
 - Access requires the user's accepted Waymo license and authenticated Google
   Cloud account; credentials and access tokens are never committed or logged.
 - Raw and processed data live below `~/dy/nas/Trust4D-GS/waymo/`, outside both
@@ -463,15 +466,124 @@ insufficient.
 
 Not executed. DATA-002 and ENV-001 must pass first.
 
-## EXP-002 — intervention reliability diagnostic (draft, not authorized)
+## EXP-002 — intervention reliability diagnostic
 
-Only after EXP-001 passes, lock exact query selection, original/reverse/shifted
-clips, coordinate canonicalization, evaluation-only motion target, Spearman,
-AUROC, calibration bins, minimum track support, and pass thresholds. Run at
-least three preselected scenes; do not choose scenes after seeing the score.
-Reverse outputs must first be restored to chronological order, and each
-intervention must be aligned to one common physical reference before computing
-3D disagreement.
+### Question and decision scope
+
+Before changing AD-GS, test whether DGGT disagreement under equivalent temporal
+observations identifies its own motion errors. This experiment may authorize a
+teacher-loss implementation; it cannot establish a rendering improvement. Run
+only after EXP-001 confirms the released output shapes and A40 memory margin.
+
+### Locked scenes, windows, and leakage boundary
+
+- Use Waymo `scene006`, `scene026`, and `scene090`, selected before results.
+- In every scene use anchor indices `5`, `25`, `45`, and `65`. For anchor `a`,
+  the original intervention is `[a,a+5,a+10,a+14]`, reverse is the exact
+  reversed order, sparse is `[a,a+10,a+14]`, and interior-shifted is
+  `[a,a+4,a+9,a+14]`. All indices are non-validation frames under the released
+  every-fourth-frame split. No held-out RGB enters DGGT.
+- Query selection uses only the released Grounded-SAM object prior at frame
+  `a`. Apply the exact DGGT width-518 resize and center crop to the mask with
+  nearest-neighbor sampling, erode by five output pixels, and intersect it with
+  a 16-pixel grid. Sort candidates by `(y,x)` and, when more than 128 remain,
+  take 128 equally spaced ranks including both endpoints. If fewer than 16
+  remain, the window is invalid and retained as a coverage failure.
+- Waymo laser labels, object IDs, boxes, and velocities are evaluation-only.
+  They may assign an already-selected query to an actor and define its target
+  motion after every teacher output is frozen; they may not select queries,
+  interventions, checkpoints, scenes, windows, or thresholds.
+
+### Locked track and coordinate canonicalization
+
+- Use the same DGGT commit, checkpoint, preprocessing, packages, and physical
+  A40 as EXP-001. The primary 3D lift is bilinear sampling of the released
+  `world_points`; depth unprojection is recorded only as a secondary diagnostic.
+- DGGT's track head always anchors queries in sequence position zero. Original,
+  sparse, and interior-shifted runs therefore receive the same frame-`a` query
+  coordinates. The reverse run receives the original run's predicted endpoint
+  coordinates at physical frame `a+14`; its returned displacement is reordered
+  to physical chronology and sign-corrected. Directly reusing frame-`a` pixels
+  as reverse queries is prohibited because it addresses different image points.
+- Retain a query only when all four interventions are in bounds, finite, and
+  have endpoint visibility at least `0.5`. Record rather than threshold DGGT
+  track confidence, world-point confidence, and dynamic confidence.
+- Decode every run's predicted OpenCV camera-from-world poses. For each frame,
+  convert `cameras.npz` through the released AD-GS convention back to an
+  explicitly tested OpenCV camera-from-world matrix, then form the world-frame
+  rotation candidate
+  `A_i = R_adgs_i^T R_dggt_i`; average candidates on SO(3) by SVD, then fit one
+  positive scale and translation to predicted and AD-GS camera centers by
+  least squares. Apply that Sim(3) to all lifted points. A run is invalid when
+  its median camera rotation residual exceeds `10 degrees`, center-alignment
+  RMSE exceeds `0.5 m`, fitted scale is nonpositive/nonfinite, or any aligned
+  point is nonfinite. Invalid runs are coverage failures, never silently
+  removed from the denominator.
+
+### Locked evaluation target and analysis unit
+
+- Project Waymo laser boxes into the anchor front camera only after inference.
+  A selected query is evaluation-matched when it lies in exactly one projected
+  actor box whose stable ID is present at both endpoints. Ambiguous queries are
+  unmatched, not reassigned.
+- Mark actors dynamic using the DGGT appendix thresholds: planar speed above
+  `0.5 m/s` for vehicles/cyclists and above `0.2 m/s` for pedestrians. Convert
+  box centers through frame ego poses into the same first-frame metric world.
+- The primary independent unit is one actor-window. For every intervention,
+  aggregate its matched query displacement by a coordinate-wise median. The
+  target is the actor box-center displacement over the same physical horizon.
+  Query-level results are exploratory and cannot decide the gate.
+- Require at least 30 valid actor-window units, at least five per scene, and at
+  least 50% of preselected windows valid. Otherwise EXP-002 is inconclusive;
+  do not weaken these support requirements after seeing data.
+
+### Locked metrics
+
+For actor-window `j`, let `d_j^k` be the displacement from intervention `k`,
+`d_j^gt` the Waymo displacement, and `d_j^O` the original prediction.
+
+- Primary error: `e_j = ||d_j^O - d_j^gt||_2` in meters.
+- Scalar disagreement:
+  `u_j = median_{k<l} ||d_j^k - d_j^l||_2` in meters.
+- Directional disagreement: covariance of the four `d_j^k` vectors and its
+  largest-eigenvalue eigenvector `v_j`. Directional error capture is
+  `r_j = (v_j^T(d_j^O-d_j^gt))^2 / (||d_j^O-d_j^gt||_2^2 + 1e-12)`.
+- Report Spearman correlation between `u` and `e`; AUROC for `u` predicting the
+  top quartile of `e`; median error in four equal-count `u` bins; and median
+  `r`. Compare AUROC against each preregistered scalar baseline
+  `1-min_endpoint_track_conf`, `-min_endpoint_world_point_conf`, and
+  `1-min_endpoint_sigmoid(dynamic_conf)` after actor-level median aggregation.
+- Use 10,000 seed-zero bootstrap resamples over stable `(scene, actor_id)`
+  blocks for 95% intervals. Do not treat multiple pixels or windows of one
+  actor as independent.
+
+### Go / no-go gate
+
+- **Anisotropic GO:** support gate passes; Spearman `rho >= 0.35` with lower
+  95% bound above zero; disagreement AUROC is at least `0.70` and exceeds the
+  best scalar-confidence AUROC by at least `0.03`; the top disagreement
+  quartile has at least `1.5x` the median error of the bottom quartile; and
+  median directional capture is at least `0.50` with lower 95% bound above
+  the isotropic reference `1/3`.
+- **Scalar-only pivot:** the correlation and AUROC gates pass but either the
+  scalar-confidence margin or directional gate fails. Do not implement an
+  anisotropic precision loss; test only the simpler scalar consensus control.
+- **One audit allowed:** `0.20 <= rho < 0.35` or
+  `0.60 <= AUROC < 0.70` triggers one source/coordinate/coverage audit with
+  unchanged scenes, windows, queries, metrics, and thresholds. It is not a
+  license to tune the experiment.
+- **Stop:** `rho < 0.20`, AUROC below `0.60`, a reversed relationship, or a
+  repeated borderline outcome after the audit stops Trust4D teacher-loss work.
+  No AD-GS treatment training or alternative-scene search follows.
+
+### Required evidence
+
+Record raw and processed input hashes, query manifests before label matching,
+all four teacher outputs, decoded/aligned cameras, Sim(3) residuals, label-match
+coverage, actor-window rows, bootstrap indices, scalar baselines, final metrics,
+plots, commands, environments, GPU snapshots, exit codes, and artifact hashes.
+The report must keep invalid/unmatched counts and reasons; a high score on a
+small silently filtered subset is a failed experiment.
 
 ## Result return template
 
