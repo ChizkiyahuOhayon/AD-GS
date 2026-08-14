@@ -1,0 +1,73 @@
+{
+  "bucket_prefix": "gs://waymo_open_dataset_v_1_4_1/individual_files",
+  "dataset": "Waymo Open Dataset Perception",
+  "dataset_version": "1.4.1",
+  "selection": "StreetGS eight-sequence split used by AD-GS",
+  "source": "README.md and scripts/waymo/prepare-waymo.sh at 9a208512e49c8ddbaa20387921d9648adcd21cb4",
+  "sequences": [
+    {
+      "filename": "individual_files_validation_segment-10448102132863604198_472_000_492_000_with_camera_labels.tfrecord",
+      "first_frame": 0,
+      "gcs_object": "validation/segment-10448102132863604198_472_000_492_000_with_camera_labels.tfrecord",
+      "last_frame": 85,
+      "phase": "diagnostic",
+      "scene": "scene006"
+    },
+    {
+      "filename": "individual_files_validation_segment-12374656037744638388_1412_711_1432_711_with_camera_labels.tfrecord",
+      "first_frame": 0,
+      "gcs_object": "validation/segment-12374656037744638388_1412_711_1432_711_with_camera_labels.tfrecord",
+      "last_frame": 100,
+      "phase": "diagnostic",
+      "scene": "scene026"
+    },
+    {
+      "filename": "individual_files_validation_segment-17612470202990834368_2800_000_2820_000_with_camera_labels.tfrecord",
+      "first_frame": 0,
+      "gcs_object": "validation/segment-17612470202990834368_2800_000_2820_000_with_camera_labels.tfrecord",
+      "last_frame": 102,
+      "phase": "diagnostic",
+      "scene": "scene090"
+    },
+    {
+      "filename": "individual_files_validation_segment-1906113358876584689_1359_560_1379_560_with_camera_labels.tfrecord",
+      "first_frame": 20,
+      "gcs_object": "validation/segment-1906113358876584689_1359_560_1379_560_with_camera_labels.tfrecord",
+      "last_frame": 186,
+      "phase": "main_table_remaining",
+      "scene": "scene105"
+    },
+    {
+      "filename": "individual_files_validation_segment-2094681306939952000_2972_300_2992_300_with_camera_labels.tfrecord",
+      "first_frame": 20,
+      "gcs_object": "validation/segment-2094681306939952000_2972_300_2992_300_with_camera_labels.tfrecord",
+      "last_frame": 115,
+      "phase": "main_table_remaining",
+      "scene": "scene108"
+    },
+    {
+      "filename": "individual_files_validation_segment-4246537812751004276_1560_000_1580_000_with_camera_labels.tfrecord",
+      "first_frame": 106,
+      "gcs_object": "validation/segment-4246537812751004276_1560_000_1580_000_with_camera_labels.tfrecord",
+      "last_frame": 198,
+      "phase": "main_table_remaining",
+      "scene": "scene134"
+    },
+    {
+      "filename": "individual_files_validation_segment-5372281728627437618_2005_000_2025_000_with_camera_labels.tfrecord",
+      "first_frame": 96,
+      "gcs_object": "validation/segment-5372281728627437618_2005_000_2025_000_with_camera_labels.tfrecord",
+      "last_frame": 197,
+      "phase": "main_table_remaining",
+      "scene": "scene150"
+    },
+    {
+      "filename": "individual_files_validation_segment-8398516118967750070_3958_000_3978_000_with_camera_labels.tfrecord",
+      "first_frame": 0,
+      "gcs_object": "validation/segment-8398516118967750070_3958_000_3978_000_with_camera_labels.tfrecord",
+      "last_frame": 160,
+      "phase": "main_table_remaining",
+      "scene": "scene181"
+    }
+  ]
+}
