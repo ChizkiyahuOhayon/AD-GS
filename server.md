@@ -82,6 +82,10 @@ runtime.
 Detached HEAD is correct for DGGT because the experiment requires that exact
 upstream commit and makes no DGGT source edits.
 
+The current target for the next server pull is AD-GS fork commit
+`893857b6c331f232ee62534a2f2523256d6b46e5`; the table above intentionally
+preserves what was observed during inventory rather than rewriting history.
+
 ## Storage and dataset discovery
 
 - Declared NAS root: `~/dy/nas`, mounted from
@@ -101,7 +105,7 @@ an unrestricted recursive scan of the shared NAS is inappropriate.
 
 ## Decisions and next gate
 
-1. Pull the AD-GS fork after the pending local runner commit is pushed.
+1. Pull the AD-GS fork to `893857b6c331f232ee62534a2f2523256d6b46e5`.
 2. Locate an authentic processed Waymo `scene006` containing both `image/` and
    `cameras.npz`, or download and preprocess the locked StreetGS/AD-GS scene.
 3. Keep DGGT at the observed pinned commit.
