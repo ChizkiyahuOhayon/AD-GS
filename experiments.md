@@ -148,6 +148,14 @@ memory margin for intervention export?
   commit. Add `scikit-learn` explicitly because `SkyGaussian.__init__` imports
   it although the released `requirements.txt` omits it. The CUDA wheel index is
   selected only after recording the A40 driver version.
+- `probe_dggt.py` rejects any installed PyTorch, torchvision, or gsplat version
+  that differs from the pins above (a CUDA local-version suffix is allowed),
+  and rejects a missing scikit-learn installation.
+- The probe is launched only through `run_exp001.sh` from a clean AD-GS
+  worktree. The runner refuses an existing output directory, creates the
+  four-frame manifest itself, and records both repositories, the command,
+  environment, GPU snapshot, stdout, stderr, exit code, wall time, metrics, and
+  artifact hashes in one result directory.
 - One forward pass after one warm-up pass, `model.eval()` and
   `torch.inference_mode()`.
 - No diffusion, TAPIP3D, AD-GS, training, or query points.
@@ -160,6 +168,7 @@ memory margin for intervention export?
 - Process exit code is zero.
 - Source commit, clean-tree state, checkpoint byte size, and re-derived image
   manifest pass preflight.
+- The locked package versions pass runtime preflight.
 - All numeric output tensors are finite.
 - Required keys exist: `pose_enc`, `world_points`, `world_points_conf`,
   `gs_map`, `gs_conf`, `dynamic_conf`, `depth`, and `depth_conf`.
