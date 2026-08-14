@@ -66,11 +66,19 @@ probe_command=(
     --selection "$output/selection.json"
     --output "$output/metrics.json"
 )
+validate_command=(
+    conda run --no-capture-output -n "$env_name"
+    python "$script_dir/validate_exp001_results.py"
+    --result-dir "$output"
+    --output "$output/validation.json"
+)
 {
     printf '%q ' "${selection_command[@]}"
     printf '\n'
     printf 'CUDA_VISIBLE_DEVICES=0 '
     printf '%q ' "${probe_command[@]}"
+    printf '\n'
+    printf '%q ' "${validate_command[@]}"
     printf '\n'
 } > "$output/command.sh"
 
@@ -79,12 +87,27 @@ probe_command=(
 start_seconds=$(date +%s)
 set +e
 "${probe_command[@]}" > "$output/stdout.log" 2> "$output/stderr.log"
-exitcode=$?
+probe_exitcode=$?
 set -e
 end_seconds=$(date +%s)
 
-printf '%s\n' "$exitcode" > "$output/exitcode.txt"
+printf '%s\n' "$probe_exitcode" > "$output/probe_exitcode.txt"
 printf '%s\n' "$((end_seconds - start_seconds))" > "$output/wall_time_seconds.txt"
+validation_exitcode=125
+if [[ "$probe_exitcode" -eq 0 ]]; then
+    set +e
+    "${validate_command[@]}" > "$output/validation.stdout.log" \
+        2> "$output/validation.stderr.log"
+    validation_exitcode=$?
+    set -e
+fi
+printf '%s\n' "$validation_exitcode" > "$output/validation_exitcode.txt"
+if [[ "$probe_exitcode" -eq 0 ]]; then
+    exitcode=$validation_exitcode
+else
+    exitcode=$probe_exitcode
+fi
+printf '%s\n' "$exitcode" > "$output/exitcode.txt"
 if [[ -f "$output/metrics.json" ]]; then
     conda run --no-capture-output -n "$env_name" python -c \
         'import json, sys; print(json.load(open(sys.argv[1]))["peak_memory_allocated_mib"])' \
@@ -97,5 +120,9 @@ find "$output" -maxdepth 1 -type f ! -name artifacts.sha256 -print0 \
 
 cat "$output/stdout.log"
 cat "$output/stderr.log" >&2
+if [[ -f "$output/validation.stdout.log" ]]; then
+    cat "$output/validation.stdout.log"
+    cat "$output/validation.stderr.log" >&2
+fi
 echo "EXP-001 evidence: $output"
 exit "$exitcode"
