@@ -86,10 +86,10 @@ training.
 |---|---|---|---|
 | EXP-000 | locked | complete (local, zero GPU) | DGGT is suitable only as an offline, separately-environmented teacher; inspect actual outputs before integration |
 | DATA-001 | locked | waiting for authenticated Waymo path/download | Prepare and validate only AD-GS Waymo scene006 |
-| DATA-003 | locked | manifest/downloader ready at `48f9376`; not executed | Acquire exact three-scene diagnostic subset first; defer five main-table scenes until the research gate passes |
+| DATA-003 | locked | manifest/downloader and multi-scene preprocessor ready at `2625abb`; not executed | Acquire exact three-scene diagnostic subset first; defer five main-table scenes until the research gate passes |
 | DATA-002 | locked | runner ready at `80ade52`; server execution blocked by DATA-001 and ENV-002 | Validate complete scene006 inputs before the A40 baseline |
 | ENV-002 | locked | setup and smoke code ready at `eaae6cc`; not executed on the server | Build pinned, separate depth/segmentation/flow/COLMAP preparation runtimes |
-| ENV-001 | locked | not started | Build a pinned, isolated AD-GS train/render environment |
+| ENV-001 | locked | setup/smoke code ready; official-source audit passes at `2625abb`; not executed | Build a pinned, isolated AD-GS train/render environment |
 | EXP-001 | locked | inventory complete; Waymo path unresolved; no GPU run | DGGT single-clip output/VRAM contract |
 | BASE-001 | locked | not started; blocked by DATA-002 and ENV-001 | Reproduce the released 60k AD-GS scene006 baseline on one A40 |
 | EXP-002 | locked | blocked by EXP-001 and three-scene image/semantic preparation | intervention disagreement versus evaluation-only actor motion error |

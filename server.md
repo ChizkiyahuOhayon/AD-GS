@@ -89,11 +89,14 @@ auditable BASE-001 runner, four pinned Waymo-prior runtimes, and the
 transactional DATA-002 scene runner. It also corrects the official Waymo GCS
 object key while preserving the released AD-GS local filename. The current
 branch additionally contains the source/code-grounded reliability artifact at
-`55c9e54`, the independent EXP-001 result validator at `99aebb8`, and the
-cost-gated eight-scene Waymo manifest/downloader at `48f9376`. The server
-should pull the current `trust4d-main` tip and verify that `e32e968` is its
-ancestor; the table above intentionally preserves what was observed during
-inventory rather than rewriting history.
+`55c9e54`, the independent EXP-001 result validator at `99aebb8`, the
+cost-gated eight-scene Waymo manifest/downloader at `48f9376`, and exact-range
+multi-scene preprocessing at `2625abb`. The centralized source audit at the
+current tip passes against the official base and confirms that all official
+AD-GS files remain unchanged. The server should pull the current
+`trust4d-main` tip and verify that `e32e968` is its ancestor; the table above
+intentionally preserves what was observed during inventory rather than
+rewriting history.
 
 ## Storage and dataset discovery
 
