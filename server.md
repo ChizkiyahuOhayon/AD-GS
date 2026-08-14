@@ -83,10 +83,11 @@ Detached HEAD is correct for DGGT because the experiment requires that exact
 upstream commit and makes no DGGT source edits.
 
 The minimum implementation commit for the next server pull is
-`893857b6c331f232ee62534a2f2523256d6b46e5`. The server should pull the current
-`trust4d-main` tip and verify that this commit is its ancestor; the table above
-intentionally preserves what was observed during inventory rather than
-rewriting history.
+`dede859365c0d037a34c393f53ac2e17f3f3d406`. It includes the pinned AD-GS
+runtime, complete Waymo input gate, official evaluator-weight preflight, and
+auditable BASE-001 runner. The server should pull the current `trust4d-main`
+tip and verify that this commit is its ancestor; the table above intentionally
+preserves what was observed during inventory rather than rewriting history.
 
 ## Storage and dataset discovery
 
