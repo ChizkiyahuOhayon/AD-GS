@@ -124,7 +124,9 @@ memory margin for intervention export?
   image count must equal the metadata length; filename heuristics are not used.
 - Images only; no validation/test frame and no evaluation label is read.
 - Image paths will be recorded after the `~/dy/nas/` inventory identifies the
-  real processed-data layout.
+  real processed-data layout. The probe accepts only the JSON manifest emitted
+  by `select_waymo_training_frames.py`; before loading the model it re-derives
+  the selection from `cameras.npz` and verifies all four file hashes.
 - DGGT checkpoint: official `model_latest_waymo.pt`, with its byte size and
   SHA-256 recorded before execution.
 - Source metadata observed before download: Hugging Face repo revision
@@ -136,7 +138,11 @@ memory margin for intervention export?
 
 ### Locked execution
 
-- DGGT commit: `a3276d2bbe4cbb03bcc117830b1836110a27adeb`.
+- DGGT commit: `a3276d2bbe4cbb03bcc117830b1836110a27adeb`, with an
+  empty working tree. A different commit or any tracked/untracked source change
+  fails preflight before GPU work begins.
+- The downloaded checkpoint size must be exactly `5,411,266,466` bytes before
+  its SHA-256 is computed and model construction begins.
 - PyTorch 2.4.1 / torchvision 0.19.1, separate `dggt` environment.
 - Pin `gsplat==1.5.3`, the last PyPI release preceding the locked DGGT source
   commit. Add `scikit-learn` explicitly because `SkyGaussian.__init__` imports
@@ -152,6 +158,8 @@ memory margin for intervention export?
 ### Pass gate
 
 - Process exit code is zero.
+- Source commit, clean-tree state, checkpoint byte size, and re-derived image
+  manifest pass preflight.
 - All numeric output tensors are finite.
 - Required keys exist: `pose_enc`, `world_points`, `world_points_conf`,
   `gs_map`, `gs_conf`, `dynamic_conf`, `depth`, and `depth_conf`.
