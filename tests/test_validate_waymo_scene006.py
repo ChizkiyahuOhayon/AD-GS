@@ -9,22 +9,22 @@ from scripts.trust4d.validate_waymo_scene006 import validate_scene
 
 
 class ValidateWaymoScene006Test(unittest.TestCase):
-    def make_scene(self, root):
+    def make_scene(self, root, frame_count=86):
         scene = Path(root) / "scene006"
         image_dir = scene / "image"
         image_dir.mkdir(parents=True)
-        for index in range(86):
+        for index in range(frame_count):
             Image.new("RGB", (2, 1), (index, 0, 0)).save(
                 image_dir / f"{index:06d}.jpg"
             )
-        is_val = np.zeros(86, dtype=np.bool_)
+        is_val = np.zeros(frame_count, dtype=np.bool_)
         is_val[4::4] = True
         np.savez(
             scene / "cameras.npz",
-            R=np.repeat(np.eye(3)[None], 86, axis=0),
-            T=np.zeros((86, 3)),
-            K=np.zeros((86, 9)),
-            time_stamps=np.arange(86, dtype=np.float32),
+            R=np.repeat(np.eye(3)[None], frame_count, axis=0),
+            T=np.zeros((frame_count, 3)),
+            K=np.zeros((frame_count, 9)),
+            time_stamps=np.arange(frame_count, dtype=np.float32),
             is_val_list=is_val,
         )
         (scene / "points3d.ply").write_text(
@@ -47,6 +47,13 @@ class ValidateWaymoScene006Test(unittest.TestCase):
         self.assertEqual(result["frame_count"], 86)
         self.assertEqual(result["validation_indices"][:2], [4, 8])
         self.assertEqual(result["points3d"]["vertex_count"], 1)
+
+    def test_generic_101_frame_scene_passes(self):
+        with tempfile.TemporaryDirectory() as root:
+            result = validate_scene(self.make_scene(root, 101), 101)
+        self.assertTrue(result["passed"])
+        self.assertEqual(result["frame_count"], 101)
+        self.assertEqual(result["validation_indices"][-1], 100)
 
     def test_rejects_wrong_split(self):
         with tempfile.TemporaryDirectory() as root:

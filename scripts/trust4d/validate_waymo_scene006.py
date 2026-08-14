@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the locked AD-GS Waymo scene006 preprocessing contract."""
+"""Validate the locked AD-GS Waymo preprocessing contract."""
 
 import argparse
 import hashlib
@@ -13,13 +13,16 @@ from PIL import Image
 EXPECTED_FRAME_COUNT = 86
 REQUIRED_CAMERA_KEYS = ("R", "T", "K", "time_stamps", "is_val_list")
 REQUIRED_PLY_PROPERTIES = {"x", "y", "z", "t"}
-EXPECTED_CAMERA_SHAPES = {
-    "R": (86, 3, 3),
-    "T": (86, 3),
-    "K": (86, 9),
-    "time_stamps": (86,),
-    "is_val_list": (86,),
-}
+
+
+def expected_camera_shapes(frame_count):
+    return {
+        "R": (frame_count, 3, 3),
+        "T": (frame_count, 3),
+        "K": (frame_count, 9),
+        "time_stamps": (frame_count,),
+        "is_val_list": (frame_count,),
+    }
 
 
 def file_sha256(path):
@@ -61,16 +64,21 @@ def read_vertex_header(path):
     return vertex_count, sorted(vertex_properties)
 
 
-def validate_scene(scene_path):
+def validate_scene(scene_path, expected_frame_count=EXPECTED_FRAME_COUNT):
+    if expected_frame_count <= 0:
+        raise ValueError("expected_frame_count must be positive")
     scene_path = Path(scene_path).expanduser().resolve()
     image_dir = scene_path / "image"
     metadata_path = scene_path / "cameras.npz"
     points_path = scene_path / "points3d.ply"
     image_paths = sorted(image_dir.glob("*.jpg"))
-    expected_names = [f"{index:06d}.jpg" for index in range(EXPECTED_FRAME_COUNT)]
+    expected_names = [f"{index:06d}.jpg" for index in range(expected_frame_count)]
 
     if [path.name for path in image_paths] != expected_names:
-        raise ValueError("scene006 must contain exactly 000000.jpg through 000085.jpg")
+        raise ValueError(
+            f"scene must contain exactly 000000.jpg through "
+            f"{expected_frame_count - 1:06d}.jpg"
+        )
 
     image_records = []
     for path in image_paths:
@@ -96,10 +104,11 @@ def validate_scene(scene_path):
             raise ValueError(f"cameras.npz is missing keys: {missing_keys}")
         arrays = {key: np.asarray(metadata[key]) for key in REQUIRED_CAMERA_KEYS}
 
+    camera_shapes = expected_camera_shapes(expected_frame_count)
     for key, value in arrays.items():
-        if value.shape != EXPECTED_CAMERA_SHAPES[key]:
+        if value.shape != camera_shapes[key]:
             raise ValueError(
-                f"cameras.npz {key} shape must be {EXPECTED_CAMERA_SHAPES[key]}, "
+                f"cameras.npz {key} shape must be {camera_shapes[key]}, "
                 f"got {value.shape}"
             )
         if key != "is_val_list" and not np.isfinite(value).all():
@@ -107,11 +116,11 @@ def validate_scene(scene_path):
     if arrays["is_val_list"].dtype != np.bool_:
         raise ValueError("cameras.npz is_val_list must have boolean dtype")
 
-    expected_timestamps = np.arange(EXPECTED_FRAME_COUNT, dtype=np.float32)
+    expected_timestamps = np.arange(expected_frame_count, dtype=np.float32)
     if not np.array_equal(arrays["time_stamps"], expected_timestamps):
-        raise ValueError("time_stamps must equal 0 through 85")
+        raise ValueError(f"time_stamps must equal 0 through {expected_frame_count - 1}")
 
-    expected_is_val = np.zeros(EXPECTED_FRAME_COUNT, dtype=np.bool_)
+    expected_is_val = np.zeros(expected_frame_count, dtype=np.bool_)
     expected_is_val[4::4] = True
     is_val = arrays["is_val_list"].astype(np.bool_)
     if not np.array_equal(is_val, expected_is_val):
@@ -120,7 +129,7 @@ def validate_scene(scene_path):
     vertex_count, vertex_properties = read_vertex_header(points_path)
     return {
         "scene": str(scene_path),
-        "frame_count": EXPECTED_FRAME_COUNT,
+        "frame_count": expected_frame_count,
         "validation_indices": np.flatnonzero(is_val).tolist(),
         "training_indices": np.flatnonzero(~is_val).tolist(),
         "cameras": {
@@ -144,10 +153,13 @@ def validate_scene(scene_path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--scene", type=Path, required=True)
+    parser.add_argument(
+        "--expected-frame-count", type=int, default=EXPECTED_FRAME_COUNT
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
-    result = validate_scene(args.scene)
+    result = validate_scene(args.scene, args.expected_frame_count)
     output_path = args.output.expanduser().resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
