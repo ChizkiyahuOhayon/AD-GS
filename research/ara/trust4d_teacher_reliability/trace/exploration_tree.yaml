@@ -1,0 +1,93 @@
+# Exploration Tree — trust4d_teacher_reliability
+# Source results are explicit; Trust4D design and pending experiments are inferred.
+tree:
+  - id: N01
+    type: question
+    support_level: inferred
+    title: Can a feed-forward dynamic geometry teacher safely improve AD-GS?
+    description: Determine whether source-teacher motion is reliable enough to justify a same-budget AD-GS treatment.
+    children:
+      - id: N02
+        type: experiment
+        support_level: explicit
+        source_refs: ["DGGT Table 5", "DGGT Appendix A.1", "DGGT Section 5"]
+        title: Audit DGGT motion strength and supervision
+        result: DGGT reports 0.183 m EPE3D, but dynamic supervision uses LiDAR-box masks and IDs and the paper identifies mask and occlusion failures.
+        evidence: [C01, C03]
+        children:
+          - id: N03
+            type: decision
+            support_level: inferred
+            title: Use DGGT as an offline candidate teacher
+            choice: Freeze DGGT, cache its outputs, and test reliability before changing AD-GS.
+            alternatives:
+              - Fine-tune DGGT jointly with AD-GS
+              - Treat DGGT motion as ground truth
+              - Train DynamicVGGT locally first
+            evidence: DGGT is strong enough to test, but its supervision and failure modes prevent unconditional trust.
+            children:
+              - id: N04
+                type: dead_end
+                support_level: inferred
+                title: Compare raw forward and reverse outputs
+                hypothesis: Raw coordinates and identical anchor pixels would name the same physical motion in both temporal orders.
+                failure_mode: Each invocation has its own gauge and the released tracker anchors query features at sequence position zero, so reverse anchor pixels name a different image point.
+                lesson: Transfer the original endpoint query and independently align every invocation with known train-camera poses.
+              - id: N08
+                type: experiment
+                support_level: inferred
+                title: EXP-001 single-A40 source-contract probe
+                result: Pending server execution; no feasibility claim is accepted before tensor, finite-value, identity, and memory gates pass.
+                evidence: [C01, C05]
+                children:
+                  - id: N09
+                    type: experiment
+                    support_level: inferred
+                    title: EXP-002 temporal-intervention reliability test
+                    result: Preregistered and pending; it will measure whether disagreement predicts actor motion error and its direction.
+                    evidence: [C03, C04]
+                    also_depends_on: [N05]
+                    children:
+                      - id: N10
+                        type: decision
+                        support_level: inferred
+                        title: Gate AD-GS treatment complexity
+                        choice: Select stop, scalar-only, one bounded audit, or anisotropic treatment strictly from the locked EXP-002 thresholds.
+                        alternatives:
+                          - Implement anisotropic loss before validation
+                          - Tune thresholds after reading evaluation labels
+                          - Report only favorable actor windows
+                        evidence: The root experiment ledger locks coverage and effect-size gates before GPU results.
+                        children:
+                          - id: N11
+                            type: dead_end
+                            support_level: inferred
+                            title: Direct teacher distillation without a reliability gate
+                            hypothesis: A source model with strong aggregate motion metrics will improve every AD-GS scene when directly supervised.
+                            failure_mode: Domain shift, occlusion, mask errors, gauge failures, and actor dependence can transfer structured error or create false precision.
+                            lesson: Implement a teacher loss only after paired diagnostic evidence, with direct distillation retained as a same-budget control.
+      - id: N05
+        type: experiment
+        support_level: explicit
+        source_refs: ["DynamicVGGT Tables 1-4", "DynamicVGGT Sections 3.3-3.5"]
+        title: Audit future-point and explicit-motion evidence
+        result: Multi-horizon temporal components improve reported point-map metrics, while the image-only Waymo full-image rendering result is not a new AD-GS baseline.
+        evidence: [C02, C04]
+        children:
+          - id: N06
+            type: decision
+            support_level: inferred
+            title: Import the temporal concept, not the 1.4B model
+            choice: Reserve future-point consistency for a later ablation if the cheaper DGGT reliability gate passes.
+            alternatives:
+              - Reproduce full DynamicVGGT training on one A40
+              - Claim its headline NVS score as an AD-GS improvement
+            evidence: The source architecture/training scale and task protocol do not match the available hardware or released AD-GS evaluation.
+          - id: N07
+            type: dead_end
+            support_level: explicit
+            source_refs: ["DynamicVGGT Section 3.5", "DynamicVGGT Figure 4"]
+            title: Direct sparse LiDAR supervision of dense point maps
+            hypothesis: Real sparse LiDAR alone should improve dense dynamic geometry.
+            failure_mode: The source reports that sparse supervision degrades smooth dense geometry.
+            lesson: DynamicVGGT distills point-map depth instead; Trust4D must not assume sparse labels are a harmless dense target.
