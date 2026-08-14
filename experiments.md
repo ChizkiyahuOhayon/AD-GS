@@ -86,6 +86,7 @@ training.
 |---|---|---|---|
 | EXP-000 | locked | complete (local, zero GPU) | DGGT is suitable only as an offline, separately-environmented teacher; inspect actual outputs before integration |
 | DATA-001 | locked | waiting for authenticated Waymo path/download | Prepare and validate only AD-GS Waymo scene006 |
+| DATA-002 | locked | not started; blocked by DATA-001 and pseudo-label generation | Validate complete scene006 inputs before the A40 baseline |
 | EXP-001 | locked | inventory complete; Waymo path unresolved; no GPU run | DGGT single-clip output/VRAM contract |
 | EXP-002 | draft; do not run | blocked by EXP-001 | intervention disagreement versus evaluation-only motion error |
 
@@ -152,6 +153,34 @@ server. It is not a rendering experiment and consumes no evaluation metric.
 
 Failure stops DATA-001; a partial scene cannot enter EXP-001 or baseline
 training.
+
+## DATA-002 — complete AD-GS Waymo baseline-input gate
+
+DATA-001 is sufficient for the image-only DGGT probe but not for AD-GS
+training. After the released depth, semantic/sky, flow, point segmentation,
+and COLMAP stages run, one validator must establish baseline readiness before
+any 60k optimization starts.
+
+### Locked gate
+
+- Preserve every DATA-001 image/camera/split invariant.
+- Require exactly one finite `depth/NNNNNN.npy`,
+  `semantic/mask_NNNNNN.npy`, and `sky/mask_NNNNNN.npy` for each of the 86
+  images. Each prior must match its source image height and width. Depth has
+  shape `(H,W,1)`, lies in `[0,1]`, and has positive within-frame range;
+  semantic and sky masks are nonnegative integer arrays. Each mask family has
+  at least one positive pixel over the scene.
+- Require `points3d.ply` to retain finite `x,y,z,t` values and contain the
+  segmentation property `obj`, with both static and object points present.
+- For every training frame whose semantic mask is nonempty, require a
+  corresponding `flow/NNNNNN.npz` with at least one finite target record and
+  finite flow/visibility arrays at the image resolution. A missing flow on a
+  dynamic training frame is a failed pseudo-label stage, not a warning to
+  ignore. Validation-frame flow is not required.
+- Because released Waymo configuration defaults to `use_colmap=True`, require
+  a nonempty `colmap.ply` with finite `x,y,z` vertices.
+- Record file sizes and SHA-256 digests in one JSON result. Any failure stops
+  baseline training; the gate is not relaxed after observing metrics.
 
 ## EXP-001 — A40 DGGT single-clip contract probe
 
