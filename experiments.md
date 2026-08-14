@@ -89,10 +89,10 @@ training.
 | DATA-003 | locked | manifest/downloader and multi-scene preprocessor ready at `2625abb`; not executed | Acquire exact three-scene diagnostic subset first; defer five main-table scenes until the research gate passes |
 | DATA-002 | locked | runner ready at `80ade52`; server execution blocked by DATA-001 and ENV-002 | Validate complete scene006 inputs before the A40 baseline |
 | ENV-002 | locked | setup and smoke code ready at `eaae6cc`; not executed on the server | Build pinned, separate depth/segmentation/flow/COLMAP preparation runtimes |
-| ENV-001 | locked | setup/smoke code ready; official-source audit passes at `2625abb`; not executed | Build a pinned, isolated AD-GS train/render environment |
+| ENV-001 | locked | setup/smoke code ready; official-source audit passes at `13d679d`; not executed | Build a pinned, isolated AD-GS train/render environment |
 | EXP-001 | locked | inventory complete; Waymo path unresolved; no GPU run | DGGT single-clip output/VRAM contract |
 | BASE-001 | locked | not started; blocked by DATA-002 and ENV-001 | Reproduce the released 60k AD-GS scene006 baseline on one A40 |
-| EXP-002 | locked | blocked by EXP-001 and three-scene image/semantic preparation | intervention disagreement versus evaluation-only actor motion error |
+| EXP-002 | locked | train-only query-manifest builder ready at `13d679d`; execution blocked by EXP-001 and three-scene semantic preparation | intervention disagreement versus evaluation-only actor motion error |
 
 The source audit is compiled into the Seal-L1 research artifact at
 `research/ara/trust4d_teacher_reliability/` (commit `55c9e54`). Its executable
@@ -584,6 +584,11 @@ only after EXP-001 confirms the released output shapes and A40 memory margin.
   queries, and the exact intervention indices. The output directory must be
   new and outside Git; its manifest and artifact hashes become immutable
   inputs to teacher export.
+- The builder and six deterministic contract tests were implemented in commit
+  `13d679d`. The full local suite passed `72` tests plus `2` subtests, and the
+  clean-tree official-source audit confirmed that every released AD-GS file is
+  byte-identical to base commit `9a208512`. This is implementation readiness,
+  not an EXP-002 result; no server query manifest or teacher output exists yet.
 - Waymo laser labels, object IDs, boxes, and velocities are evaluation-only.
   They may assign an already-selected query to an actor and define its target
   motion after every teacher output is frozen; they may not select queries,
