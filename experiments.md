@@ -93,6 +93,11 @@ training.
 | BASE-001 | locked | not started; blocked by DATA-002 and ENV-001 | Reproduce the released 60k AD-GS scene006 baseline on one A40 |
 | EXP-002 | locked | blocked by EXP-001 and three-scene image/semantic preparation | intervention disagreement versus evaluation-only actor motion error |
 
+The source audit is compiled into the Seal-L1 research artifact at
+`research/ara/trust4d_teacher_reliability/` (commit `55c9e54`). Its executable
+reference fixes the reverse-query and per-invocation Sim(3) conventions used
+by EXP-002; it does not modify or claim a result for AD-GS.
+
 ## EXP-000 — source and protocol audit
 
 ### Inputs

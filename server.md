@@ -82,14 +82,16 @@ runtime.
 Detached HEAD is correct for DGGT because the experiment requires that exact
 upstream commit and makes no DGGT source edits.
 
-The minimum implementation commit for the next server pull is
-`80ade52df736f66be52b8ad473a9c3643a2b5bf6`. It includes the pinned AD-GS
+The minimum runtime implementation commit for the next server pull is
+`e32e9683cf3372543357e9a5a2afc3439db35b10`. It includes the pinned AD-GS
 runtime, complete Waymo input gate, official evaluator-weight preflight,
 auditable BASE-001 runner, four pinned Waymo-prior runtimes, and the
-transactional DATA-002 scene runner. The server should pull the current
-`trust4d-main` tip and verify that this commit is its ancestor; the table above
-intentionally preserves what was observed during inventory rather than
-rewriting history.
+transactional DATA-002 scene runner. It also corrects the official Waymo GCS
+object key while preserving the released AD-GS local filename. The current
+branch tip additionally contains the source/code-grounded reliability artifact
+at `55c9e54`. The server should pull the current `trust4d-main` tip and verify
+that `e32e968` is its ancestor; the table above intentionally preserves what
+was observed during inventory rather than rewriting history.
 
 ## Storage and dataset discovery
 
@@ -111,7 +113,7 @@ an unrestricted recursive scan of the shared NAS is inappropriate.
 ## Decisions and next gate
 
 1. Pull the current `trust4d-main` tip and verify it contains implementation
-   commit `893857b6c331f232ee62534a2f2523256d6b46e5`.
+   commit `e32e9683cf3372543357e9a5a2afc3439db35b10`.
 2. Locate an authentic processed Waymo `scene006` containing both `image/` and
    `cameras.npz`, or download and preprocess the locked StreetGS/AD-GS scene.
 3. Keep DGGT at the observed pinned commit.
