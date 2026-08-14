@@ -89,6 +89,7 @@ training.
 | DATA-002 | locked | not started; blocked by DATA-001 and pseudo-label generation | Validate complete scene006 inputs before the A40 baseline |
 | ENV-001 | locked | not started | Build a pinned, isolated AD-GS train/render environment |
 | EXP-001 | locked | inventory complete; Waymo path unresolved; no GPU run | DGGT single-clip output/VRAM contract |
+| BASE-001 | locked | not started; blocked by DATA-002 and ENV-001 | Reproduce the released 60k AD-GS scene006 baseline on one A40 |
 | EXP-002 | draft; do not run | blocked by EXP-001 | intervention disagreement versus evaluation-only motion error |
 
 ## EXP-000 — source and protocol audit
@@ -318,6 +319,66 @@ AD-GS checkout was still at `aa28448` and must be updated. The bounded NAS
 search found no authentic Waymo TFRecord or processed `scene006`; its
 `scene0060_00` hits are ScanNet and are invalid for this experiment. EXP-001
 therefore has not executed and remains pending data-path resolution.
+
+## BASE-001 — released AD-GS Waymo scene006 reproduction
+
+### Question
+
+Does the released AD-GS implementation reproduce its historical scene006
+result on the new A40 closely enough to serve as a matched control for later
+treatments?
+
+### Locked source, input, and runtime
+
+- Train and render with the official AD-GS source at commit
+  `9a208512e49c8ddbaa20387921d9648adcd21cb4`. The research branch may add only
+  `experiments.md`, `server.md`, `scripts/trust4d/`, and `tests/`; any modified
+  or deleted official file fails preflight.
+- Require a clean research worktree, a DATA-002 pass result produced from the
+  exact scene path, and an ENV-001 smoke-test pass in the named
+  `trust4d-adgs-baseline` environment.
+- Use the released `arguments/waymo.py`, all default optimization parameters,
+  one front camera, the released validation split, and exactly 60,000
+  iterations. Do not override resolution, losses, densification, or sampling.
+- Use physical GPU 0 only via `CUDA_VISIBLE_DEVICES=0`; inside the process the
+  device is `cuda:0`. The runner verifies an NVIDIA A40 before training.
+- The released `safe_state` fixes Python, NumPy, and Torch RNG seeds to zero.
+  No checkpoint selection or repeated-seed best-run selection is allowed.
+- Execute the released sequence:
+  `python train.py -c arguments/waymo.py -s <scene006> -m <new-run-dir>
+  --data_device cuda:0`, followed by
+  `python render.py -c arguments/waymo.py -m <run-dir> --data_device cuda:0
+  -v`. Both commands run through the pinned Conda environment.
+- The run and evidence directories must not exist before launch. Record exact
+  commands, both repository states, source-diff audit, DATA-002 and ENV-001
+  results, package freeze, GPU snapshots, complete stdout/stderr, exit codes,
+  wall times, metric JSON files, and SHA-256 manifests.
+
+### Locked pass gate
+
+- Training and rendering both exit zero; the saved checkpoint is exactly
+  `point_cloud/iteration_60000/{point_cloud.ply,env.pth}` and the evaluator
+  reports an `ours_60000` record in both `results.json` and
+  `results-train.json`.
+- Test PSNR, SSIM, LPIPS(VGG), LPIPS(ALEX), and FPS are finite; PSNR and FPS
+  are positive, SSIM lies in `[0,1]`, and both LPIPS values are nonnegative.
+- Compare only against the pre-existing scene006 historical anchor: PSNR
+  `34.9363`, SSIM `0.95216`, LPIPS(VGG) `0.18436`. Reproduction requires
+  absolute deviations no greater than `0.50 dB`, `0.010`, and `0.020`,
+  respectively. These limits are fixed before the A40 result is observed and
+  are not relaxed after execution.
+- A metric outside tolerance is a failed reproduction requiring diagnosis,
+  not evidence against or for the research hypothesis. Treatment training
+  remains unauthorized until BASE-001 passes.
+
+The tolerance gate checks baseline fidelity only. A later SOTA claim requires
+same-budget paired controls across all eight released Waymo scenes and then
+the predeclared KITTI/nuScenes transfer evaluation; a scene006-only gain is
+insufficient.
+
+### Result
+
+Not executed. DATA-002 and ENV-001 must pass first.
 
 ## EXP-002 — intervention reliability diagnostic (draft, not authorized)
 
