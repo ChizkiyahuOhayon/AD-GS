@@ -210,6 +210,10 @@ memory margin for intervention export?
   four-frame manifest itself, and records both repositories, the command,
   environment, GPU snapshot, stdout, stderr, exit code, wall time, metrics, and
   artifact hashes in one result directory.
+- The runner invokes every Python command through the named
+  `trust4d-dggt-exp001` Conda environment; it does not depend on the caller's
+  active shell environment. The deserialized CPU checkpoint is released as
+  soon as strict state-dict loading succeeds.
 - One forward pass after one warm-up pass, `model.eval()` and
   `torch.inference_mode()`.
 - Bind the process to physical GPU 0 with `CUDA_VISIBLE_DEVICES=0`; the probe

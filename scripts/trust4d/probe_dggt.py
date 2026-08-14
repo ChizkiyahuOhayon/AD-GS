@@ -235,6 +235,7 @@ def main():
     model = VGGT().to(device).eval()
     checkpoint = torch.load(checkpoint_path, map_location="cpu")
     model.load_state_dict(checkpoint, strict=True)
+    del checkpoint
     images = load_and_preprocess_images([str(path) for path in image_paths]).to(device)
 
     with torch.inference_mode():

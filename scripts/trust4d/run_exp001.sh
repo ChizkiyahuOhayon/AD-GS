@@ -12,6 +12,13 @@ checkpoint=$3
 output=$4
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 adgs_root=$(git -C "$script_dir" rev-parse --show-toplevel)
+env_name=trust4d-dggt-exp001
+
+command -v conda >/dev/null
+if ! conda env list | awk '{print $1}' | grep -Fxq "$env_name"; then
+    echo "required Conda environment does not exist: $env_name" >&2
+    exit 2
+fi
 
 if [[ -e "$output" ]]; then
     echo "output already exists; choose a new directory: $output" >&2
@@ -40,17 +47,19 @@ nvidia-smi > "$output/nvidia-smi.txt"
 {
     date --iso-8601=seconds
     hostname
-    python --version
-    python -m pip freeze
+    conda run --no-capture-output -n "$env_name" python --version
+    conda run --no-capture-output -n "$env_name" python -m pip freeze
 } > "$output/environment.txt" 2>&1
 
 selection_command=(
+    conda run --no-capture-output -n "$env_name"
     python "$script_dir/select_waymo_training_frames.py"
     --scene "$scene_path"
     --count 4
     --output "$output/selection.json"
 )
 probe_command=(
+    conda run --no-capture-output -n "$env_name"
     python "$script_dir/probe_dggt.py"
     --dggt-root "$dggt_root"
     --checkpoint "$checkpoint"
@@ -77,7 +86,7 @@ end_seconds=$(date +%s)
 printf '%s\n' "$exitcode" > "$output/exitcode.txt"
 printf '%s\n' "$((end_seconds - start_seconds))" > "$output/wall_time_seconds.txt"
 if [[ -f "$output/metrics.json" ]]; then
-    python -c \
+    conda run --no-capture-output -n "$env_name" python -c \
         'import json, sys; print(json.load(open(sys.argv[1]))["peak_memory_allocated_mib"])' \
         "$output/metrics.json" > "$output/peak_gpu_memory_mib.txt"
 fi
