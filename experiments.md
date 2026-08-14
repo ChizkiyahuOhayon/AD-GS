@@ -158,6 +158,9 @@ memory margin for intervention export?
   artifact hashes in one result directory.
 - One forward pass after one warm-up pass, `model.eval()` and
   `torch.inference_mode()`.
+- Bind the process to physical GPU 0 with `CUDA_VISIBLE_DEVICES=0`; the probe
+  verifies that logical `cuda:0` is an NVIDIA A40 and records its runtime total
+  memory.
 - No diffusion, TAPIP3D, AD-GS, training, or query points.
 - Record `nvidia-smi`, package versions, input filenames and tensor shape,
   dtype, device, finite fraction, min/max for every returned tensor; record
@@ -173,8 +176,13 @@ memory margin for intervention export?
 - Required keys exist: `pose_enc`, `world_points`, `world_points_conf`,
   `gs_map`, `gs_conf`, `dynamic_conf`, `depth`, and `depth_conf`.
 - Sequence dimension equals four for every per-frame output.
-- Peak allocated memory is below 44 GiB, leaving at least 4 GiB operational
-  margin on the A40.
+- Runtime total memory minus peak PyTorch reserved memory is at least
+  `4096 MiB`. Peak allocated memory remains recorded but is not substituted for
+  reserved memory in this safety gate.
+
+The inventory showed `46068 MiB` total, so the earlier fixed `<44 GiB` test
+would have left only about `1012 MiB`, not the claimed 4 GiB. This dynamic gate
+is the pre-GPU correction for decimal GB versus binary GiB and allocator cache.
 
 Failure triggers diagnosis or a smaller clip/resolution probe; it does not
 authorize changing AD-GS.
