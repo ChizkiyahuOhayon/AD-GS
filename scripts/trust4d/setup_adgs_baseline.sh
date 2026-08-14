@@ -90,6 +90,9 @@ run_setup() {
     conda run --no-capture-output -n "$env_name" python -m pip freeze \
         > "$evidence/environment.txt"
     env CUDA_VISIBLE_DEVICES=0 conda run --no-capture-output -n "$env_name" \
+        python "$script_dir/cache_adgs_evaluator.py" \
+        --adgs-root "$adgs_root" --output "$evidence/evaluator.json"
+    env CUDA_VISIBLE_DEVICES=0 conda run --no-capture-output -n "$env_name" \
         python "$script_dir/smoke_adgs_runtime.py" \
         --adgs-root "$adgs_root" --output "$evidence/smoke.json"
 }

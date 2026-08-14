@@ -23,7 +23,9 @@ if [[ -n "$(git -C "$adgs_root" status --porcelain)" ]]; then
     git -C "$adgs_root" status --short >&2
     exit 2
 fi
-if [[ ! -f "$env_evidence/smoke.json" || ! -f "$env_evidence/exitcode.txt" ]]; then
+if [[ ! -f "$env_evidence/smoke.json" \
+    || ! -f "$env_evidence/evaluator.json" \
+    || ! -f "$env_evidence/exitcode.txt" ]]; then
     echo "ENV-001 evidence is missing or failed: $env_evidence" >&2
     exit 2
 fi
@@ -32,8 +34,8 @@ if [[ "$(<"$env_evidence/exitcode.txt")" != 0 ]]; then
     exit 2
 fi
 conda run -n "$env_name" python -c \
-    'import json,sys; assert json.load(open(sys.argv[1]))["passed"] is True' \
-    "$env_evidence/smoke.json"
+    'import json,sys; assert all(json.load(open(p))["passed"] is True for p in sys.argv[1:])' \
+    "$env_evidence/smoke.json" "$env_evidence/evaluator.json"
 if [[ -e "$run_dir" || -e "$evidence" ]]; then
     echo "run and evidence directories must both be new" >&2
     exit 2
@@ -73,6 +75,8 @@ conda run --no-capture-output -n "$env_name" python -m pip freeze \
     > "$evidence/environment.txt"
 cp "$env_evidence/smoke.json" "$evidence/env001.smoke.json"
 sha256sum "$env_evidence/smoke.json" > "$evidence/env001.smoke.sha256"
+cp "$env_evidence/evaluator.json" "$evidence/env001.evaluator.json"
+sha256sum "$env_evidence/evaluator.json" > "$evidence/env001.evaluator.sha256"
 
 data_command=(
     conda run --no-capture-output -n "$env_name"
