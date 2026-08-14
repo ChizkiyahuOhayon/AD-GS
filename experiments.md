@@ -53,6 +53,10 @@ changed.
 - The released training path supervises the dynamic head with dataset dynamic
   masks. DGGT is an annotation-assisted frozen teacher even if Trust4D-GS does
   not expose those labels to AD-GS training.
+- DGGT encodes OpenCV camera-from-world transforms. Its released Waymo loader
+  places the first ego pose at the world origin, so reversing a clip changes
+  the prediction reference. Raw original/reverse 3D coordinates are not
+  comparable without chronological reordering and common-frame alignment.
 
 ### DynamicVGGT
 
@@ -115,6 +119,9 @@ memory margin for intervention export?
 
 - The first four AD-GS training frames of Waymo `scene006`, front camera, in
   chronological order.
+- Training membership is selected by pairing sorted files in `image/` with
+  `cameras.npz['is_val_list']` and taking entries where the flag is false. The
+  image count must equal the metadata length; filename heuristics are not used.
 - Images only; no validation/test frame and no evaluation label is read.
 - Image paths will be recorded after the `~/dy/nas/` inventory identifies the
   real processed-data layout.
@@ -165,6 +172,9 @@ Only after EXP-001 passes, lock exact query selection, original/reverse/shifted
 clips, coordinate canonicalization, evaluation-only motion target, Spearman,
 AUROC, calibration bins, minimum track support, and pass thresholds. Run at
 least three preselected scenes; do not choose scenes after seeing the score.
+Reverse outputs must first be restored to chronological order, and each
+intervention must be aligned to one common physical reference before computing
+3D disagreement.
 
 ## Result return template
 
