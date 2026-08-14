@@ -86,6 +86,7 @@ training.
 |---|---|---|---|
 | EXP-000 | locked | complete (local, zero GPU) | DGGT is suitable only as an offline, separately-environmented teacher; inspect actual outputs before integration |
 | DATA-001 | locked | waiting for authenticated Waymo path/download | Prepare and validate only AD-GS Waymo scene006 |
+| DATA-003 | locked | manifest implementation pending | Acquire exact three-scene diagnostic subset first; defer five main-table scenes until the research gate passes |
 | DATA-002 | locked | runner ready at `80ade52`; server execution blocked by DATA-001 and ENV-002 | Validate complete scene006 inputs before the A40 baseline |
 | ENV-002 | locked | setup and smoke code ready at `eaae6cc`; not executed on the server | Build pinned, separate depth/segmentation/flow/COLMAP preparation runtimes |
 | ENV-001 | locked | not started | Build a pinned, isolated AD-GS train/render environment |
@@ -164,6 +165,62 @@ server. It is not a rendering experiment and consumes no evaluation metric.
 
 Failure stops DATA-001; a partial scene cannot enter EXP-001 or baseline
 training.
+
+## DATA-003 — cost-gated official Waymo scene manifest
+
+This acquisition protocol is locked before implementing the multi-scene
+downloader. It preserves the final eight-scene AD-GS comparison while avoiding
+unnecessary data preparation before the research hypothesis passes its cheap
+gates.
+
+### Authoritative manifest
+
+- Derive scene names, local filenames, and inclusive frame ranges directly
+  from the unchanged official `scripts/waymo/prepare-waymo.sh` at AD-GS commit
+  `9a208512e49c8ddbaa20387921d9648adcd21cb4`.
+- Use bucket prefix
+  `gs://waymo_open_dataset_v_1_4_1/individual_files` and the official object
+  form `validation/segment-...tfrecord`. The longer
+  `individual_files_validation_segment-...` form remains only the local
+  filename expected by AD-GS.
+- Lock the following eight records:
+
+| Scene | Inclusive frames | GCS object basename |
+|---|---:|---|
+| scene006 | 0--85 | `segment-10448102132863604198_472_000_492_000_with_camera_labels.tfrecord` |
+| scene026 | 0--100 | `segment-12374656037744638388_1412_711_1432_711_with_camera_labels.tfrecord` |
+| scene090 | 0--102 | `segment-17612470202990834368_2800_000_2820_000_with_camera_labels.tfrecord` |
+| scene105 | 20--186 | `segment-1906113358876584689_1359_560_1379_560_with_camera_labels.tfrecord` |
+| scene108 | 20--115 | `segment-2094681306939952000_2972_300_2992_300_with_camera_labels.tfrecord` |
+| scene134 | 106--198 | `segment-4246537812751004276_1560_000_1580_000_with_camera_labels.tfrecord` |
+| scene150 | 96--197 | `segment-5372281728627437618_2005_000_2025_000_with_camera_labels.tfrecord` |
+| scene181 | 0--160 | `segment-8398516118967750070_3958_000_3978_000_with_camera_labels.tfrecord` |
+
+### Cost gate and download evidence
+
+- Phase A contains exactly `scene006`, `scene026`, and `scene090`. It supports
+  BASE-001 and EXP-002. Download no other scene before EXP-002 authorizes a
+  teacher treatment and the first same-budget treatment comparison is
+  positive.
+- Phase B contains `scene105`, `scene108`, `scene134`, `scene150`, and
+  `scene181`. It is required for an eight-scene Waymo main table, but remains
+  blocked by the Phase-A research gates rather than by availability.
+- The downloader requires explicit scene IDs and rejects unknown or duplicate
+  IDs. It queries remote object metadata before transfer and validates exact
+  byte size plus the official base64 MD5 when supplied by GCS.
+- An existing final file is reused only after the same checks. Downloads stage
+  under the raw-data directory and are atomically promoted to the AD-GS local
+  filename; corrupt staged or final files cause failure and are never silently
+  overwritten.
+- A new evidence directory records the selected manifest subset, remote
+  metadata, commands, local SHA-256, GCS generation/ETag/checksums, exit code,
+  and artifact hashes. Credentials and access tokens are neither arguments nor
+  evidence artifacts; authentication remains in the user's `gcloud` profile.
+- Raw records and evidence live under `~/dy/nas/Trust4D-GS/`, outside Git.
+  Downloading is CPU/network work and does not reserve the A40.
+
+Any mismatch stops acquisition. The official preprocessing frame ranges are
+not shortened to fit only the preregistered EXP-002 anchors.
 
 ## DATA-002 — complete AD-GS Waymo baseline-input gate
 
