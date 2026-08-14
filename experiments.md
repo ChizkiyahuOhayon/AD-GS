@@ -213,10 +213,24 @@ release supporting Python 3.7 (v0.7.1) lists support only through PyTorch
   dependencies, using the released versions where specified. COLMAP, DPT,
   Grounded-SAM-2, CoTracker, and DGGT remain separate preparation/teacher
   environments.
+- Populate and test the official evaluator cache before training. Torchvision
+  0.14.1 must fetch its declared AlexNet `IMAGENET1K_V1` file
+  `alexnet-owt-7be5be79.pth` and VGG16 `IMAGENET1K_V1` file
+  `vgg16-397923af.pth`; torchvision enforces the SHA-256 filename prefixes and
+  the evidence records the full local digests. Pin LPIPS v0.1 weights to
+  PerceptualSimilarity commit
+  `082bb24f84c091ea94de2867d34c4544f68e0963`: `alex.pth` has SHA-256
+  `df73285e35b22355a2df87cdb6b70b343713b667eddbda73e1977e0c860835c0`
+  and `vgg.pth` has SHA-256
+  `a78928a0af1e5f0fcb1f3b9e8f8c3a2a5a3de244d830ad5c1feddc79b8432868`.
+  Execute both released LPIPS paths on fixed tensors and require finite,
+  nonnegative outputs. This preserves the released evaluator while removing
+  its runtime dependency on a mutable `master` URL.
 - Before acceptance, require exact critical package versions, import both CUDA
   extensions, execute `pytorch3d.ops.knn_points` and `simple_knn.distCUDA2` on
   physical GPU 0, and retain `pip freeze`, compiler/GPU inventory, build logs,
-  and a smoke-test JSON. Failure stops baseline training.
+  evaluator-cache hashes, and smoke-test JSON files. Failure stops baseline
+  training.
 
 ## EXP-001 — A40 DGGT single-clip contract probe
 
