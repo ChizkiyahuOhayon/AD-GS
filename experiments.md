@@ -125,17 +125,21 @@ server. It is not a rendering experiment and consumes no evaluation metric.
 - Exact arguments: `--first_frame 0 --last_frame 85 --use_color`; front camera
   remains the released default.
 - A separate CPU-only Python 3.10 environment uses TensorFlow 2.11.0 and
-  `waymo-open-dataset-tf-2-11-0==1.6.1`; it never shares the DGGT or AD-GS
-  training environment.
+  `waymo-open-dataset-tf-2-11-0==1.6.1`, plus CPU-only PyTorch 1.13.1 for the
+  released color projection's `grid_sample`; it never shares the DGGT or
+  AD-GS training environment.
 
 ### Data pass gate
 
 - Exactly 86 decodable images and 86 entries in `R`, `T`, `K`, `time_stamps`,
   and `is_val_list`.
+- Exact metadata shapes are `R: (86,3,3)`, `T: (86,3)`, `K: (86,9)`, and
+  one-dimensional `(86,)` timestamps and boolean split flags.
 - Timestamps are exactly 0 through 85; validation indices are exactly
   `4, 8, ..., 84`, matching released `get_val_frames(..., test_every=4)`.
 - Camera arrays contain only finite values. `points3d.ply` is nonempty and has
-  a positive vertex count with `x`, `y`, `z`, and `t` properties.
+  a positive vertex count, a nonempty payload, and `x`, `y`, `z`, and `t`
+  properties.
 - The first four chronological training images are selected only through the
   locked split selector and every artifact SHA-256 is recorded.
 
