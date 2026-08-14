@@ -86,8 +86,8 @@ training.
 |---|---|---|---|
 | EXP-000 | locked | complete (local, zero GPU) | DGGT is suitable only as an offline, separately-environmented teacher; inspect actual outputs before integration |
 | DATA-001 | locked | waiting for authenticated Waymo path/download | Prepare and validate only AD-GS Waymo scene006 |
-| DATA-002 | locked | not started; blocked by DATA-001 and pseudo-label generation | Validate complete scene006 inputs before the A40 baseline |
-| ENV-002 | locked | not started | Build pinned, separate depth/segmentation/flow/COLMAP preparation runtimes |
+| DATA-002 | locked | runner ready at `80ade52`; server execution blocked by DATA-001 and ENV-002 | Validate complete scene006 inputs before the A40 baseline |
+| ENV-002 | locked | setup and smoke code ready at `eaae6cc`; not executed on the server | Build pinned, separate depth/segmentation/flow/COLMAP preparation runtimes |
 | ENV-001 | locked | not started | Build a pinned, isolated AD-GS train/render environment |
 | EXP-001 | locked | inventory complete; Waymo path unresolved; no GPU run | DGGT single-clip output/VRAM contract |
 | BASE-001 | locked | not started; blocked by DATA-002 and ENV-001 | Reproduce the released 60k AD-GS scene006 baseline on one A40 |
