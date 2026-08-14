@@ -11,6 +11,16 @@ from pathlib import Path
 
 import torch
 
+try:
+    from .select_waymo_training_frames import select_training_frames
+except ImportError:
+    from select_waymo_training_frames import select_training_frames
+
+
+EXPECTED_DGGT_COMMIT = "a3276d2bbe4cbb03bcc117830b1836110a27adeb"
+EXPECTED_CHECKPOINT_SIZE_BYTES = 5_411_266_466
+EXPECTED_IMAGE_COUNT = 4
+
 
 def file_sha256(path):
     digest = hashlib.sha256()
@@ -70,6 +80,52 @@ def iter_tensors(value):
             yield from iter_tensors(item)
 
 
+def verify_source_contract(dggt_root, expected_commit=EXPECTED_DGGT_COMMIT):
+    commit = subprocess.check_output(
+        ["git", "-C", str(dggt_root), "rev-parse", "HEAD"], text=True
+    ).strip()
+    status = subprocess.check_output(
+        ["git", "-C", str(dggt_root), "status", "--porcelain"], text=True
+    ).strip()
+    if commit != expected_commit:
+        raise ValueError(f"DGGT commit mismatch: expected {expected_commit}, got {commit}")
+    if status:
+        raise ValueError(f"DGGT working tree is not clean:\n{status}")
+    return {"commit": commit, "working_tree_clean": True}
+
+
+def verify_checkpoint(path, expected_size=EXPECTED_CHECKPOINT_SIZE_BYTES):
+    path = Path(path).expanduser().resolve()
+    size_bytes = path.stat().st_size
+    if size_bytes != expected_size:
+        raise ValueError(
+            f"checkpoint size mismatch: expected {expected_size}, got {size_bytes}"
+        )
+    return {
+        "path": str(path),
+        "size_bytes": size_bytes,
+        "sha256": file_sha256(path),
+    }
+
+
+def load_verified_selection(path, expected_count=EXPECTED_IMAGE_COUNT):
+    path = Path(path).expanduser().resolve()
+    recorded = json.loads(path.read_text())
+    if recorded.get("count") != expected_count:
+        raise ValueError(
+            f"selection count mismatch: expected {expected_count}, "
+            f"got {recorded.get('count')}"
+        )
+    derived = select_training_frames(recorded["scene"], count=expected_count)
+    if recorded != derived:
+        raise ValueError("selection manifest does not match the current scene and split")
+    return {
+        "path": str(path),
+        "sha256": file_sha256(path),
+        "content": derived,
+    }
+
+
 def evaluate_gate(predictions, peak_allocated_mib, sequence_length=4):
     required_keys = {
         "pose_enc",
@@ -112,13 +168,18 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dggt-root", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument("--images", type=Path, nargs=4, required=True)
+    parser.add_argument("--selection", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
     dggt_root = args.dggt_root.expanduser().resolve()
     checkpoint_path = args.checkpoint.expanduser().resolve()
-    image_paths = [path.expanduser().resolve() for path in args.images]
+    source_contract = verify_source_contract(dggt_root)
+    checkpoint_contract = verify_checkpoint(checkpoint_path)
+    selection_contract = load_verified_selection(args.selection)
+    image_paths = [
+        Path(item["path"]) for item in selection_contract["content"]["images"]
+    ]
     sys.path.insert(0, str(dggt_root))
 
     from dggt.models.vggt import VGGT
@@ -152,22 +213,10 @@ def main():
 
     result = {
         "experiment_id": "EXP-001",
-        "dggt_commit": subprocess.check_output(
-            ["git", "-C", str(dggt_root), "rev-parse", "HEAD"], text=True
-        ).strip(),
-        "checkpoint": {
-            "path": str(checkpoint_path),
-            "size_bytes": checkpoint_path.stat().st_size,
-            "sha256": file_sha256(checkpoint_path),
-        },
-        "images": [
-            {
-                "path": str(path),
-                "size_bytes": path.stat().st_size,
-                "sha256": file_sha256(path),
-            }
-            for path in image_paths
-        ],
+        "dggt_commit": source_contract["commit"],
+        "source": source_contract,
+        "checkpoint": checkpoint_contract,
+        "selection_manifest": selection_contract,
         "environment": {
             "python": sys.version,
             "torch": torch.__version__,
