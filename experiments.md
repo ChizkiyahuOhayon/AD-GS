@@ -188,6 +188,9 @@ memory margin for intervention export?
   `gsplat-1.5.3+pt24cu121-cp310-cp310-linux_x86_64.whl`, SHA-256
   `0493bab68ed5fc71f4ce8bfc2be03b584d8a41a06a6d9362e09a795340f8c488`,
   rather than compiling against the server's CUDA 11.8 `nvcc`.
+- Remaining packages come from locked DGGT `requirements.txt`, SHA-256
+  `33428d6d7da037a7a344ea230819901493d2dbf9ca3c2b264fdeab689722854f`;
+  the complete resolved `pip freeze` is retained by the evidence runner.
 - `probe_dggt.py` rejects any installed PyTorch, torchvision, or gsplat version
   that differs from the pins above (a CUDA local-version suffix is allowed),
   and rejects a missing scikit-learn installation.
