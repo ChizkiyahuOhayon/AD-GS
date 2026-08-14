@@ -216,6 +216,20 @@ gates.
   metadata, commands, local SHA-256, GCS generation/ETag/checksums, exit code,
   and artifact hashes. Credentials and access tokens are neither arguments nor
   evidence artifacts; authentication remains in the user's `gcloud` profile.
+- Multi-scene preprocessing requires the successful download receipt for the
+  same explicit scene subset, rechecks each raw SHA-256, and invokes the
+  unchanged official `scripts/waymo/waymo.py` with that scene's complete
+  inclusive frame range and `--use_color`. Scenes execute serially in the
+  isolated `trust4d-waymo-prep` CPU environment.
+- For each scene let `N = last_frame - first_frame + 1`. Require exactly the
+  consecutive images `000000.jpg` through `N-1`, camera-array shapes
+  `R:(N,3,3)`, `T:(N,3)`, `K:(N,9)`, one-dimensional `time_stamps` and
+  `is_val_list`, timestamps `0..N-1`, and boolean validation indices
+  `4,8,... < N`. Require finite camera arrays and a nonempty `points3d.ply`
+  with positive vertex count and `x,y,z,t` properties.
+- Every processed scene path and the preprocessing evidence directory must be
+  new. A failed scene stops later scenes and retains its partial directory and
+  logs for diagnosis; it is never passed onward or silently reused.
 - Raw records and evidence live under `~/dy/nas/Trust4D-GS/`, outside Git.
   Downloading is CPU/network work and does not reserve the A40.
 
