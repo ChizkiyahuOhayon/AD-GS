@@ -18,6 +18,7 @@ evidence=$(realpath -m "$1")
 command -v conda >/dev/null
 command -v nvcc >/dev/null
 command -v nvidia-smi >/dev/null
+command -v python3 >/dev/null
 git -C "$adgs_root" merge-base --is-ancestor "$official_base" HEAD
 [[ -z "$(git -C "$adgs_root" status --porcelain)" ]]
 [[ "$(git -C "$adgs_root" rev-parse HEAD:submodules/simple-knn)" == "$simple_knn_tree" ]]
@@ -37,7 +38,10 @@ if [[ -e "$evidence" ]]; then
     exit 2
 fi
 
+source_audit=$(python3 "$script_dir/audit_official_source.py" \
+    --repository "$adgs_root")
 mkdir -p "$evidence"
+printf '%s\n' "$source_audit" > "$evidence/official_source_audit.json"
 build_dir=$(mktemp -d)
 cuda_home=$(dirname "$(dirname "$(readlink -f "$(command -v nvcc)")")")
 start_seconds=$(date +%s)

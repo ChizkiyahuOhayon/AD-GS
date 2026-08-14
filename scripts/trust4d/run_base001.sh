@@ -17,6 +17,7 @@ official_base=9a208512e49c8ddbaa20387921d9648adcd21cb4
 
 command -v conda >/dev/null
 command -v nvidia-smi >/dev/null
+command -v python3 >/dev/null
 git -C "$adgs_root" merge-base --is-ancestor "$official_base" HEAD
 if [[ -n "$(git -C "$adgs_root" status --porcelain)" ]]; then
     echo "AD-GS working tree is not clean" >&2
@@ -47,20 +48,8 @@ for path in "$run_dir" "$evidence"; do
     esac
 done
 
-while IFS=$'\t' read -r status path; do
-    [[ -z "$status" ]] && continue
-    if [[ "$status" != A ]]; then
-        echo "official AD-GS source is not byte-identical: $status $path" >&2
-        exit 2
-    fi
-    case "$path" in
-        experiments.md|server.md|scripts/trust4d/*|tests/*) ;;
-        *)
-            echo "unexpected file relative to official AD-GS: $path" >&2
-            exit 2
-            ;;
-    esac
-done < <(git -C "$adgs_root" diff --name-status "$official_base" HEAD)
+source_audit=$(python3 "$script_dir/audit_official_source.py" \
+    --repository "$adgs_root")
 
 mkdir -p "$evidence"
 export CUDA_VISIBLE_DEVICES=0
@@ -70,6 +59,7 @@ git -C "$adgs_root" rev-parse HEAD > "$evidence/git_commit.txt"
 git -C "$adgs_root" status --short --branch > "$evidence/git_status.txt"
 git -C "$adgs_root" diff --name-status "$official_base" HEAD \
     > "$evidence/official_source_diff.tsv"
+printf '%s\n' "$source_audit" > "$evidence/official_source_audit.json"
 nvidia-smi > "$evidence/nvidia-smi.before.txt"
 conda run --no-capture-output -n "$env_name" python -m pip freeze \
     > "$evidence/environment.txt"
