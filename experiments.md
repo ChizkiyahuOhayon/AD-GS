@@ -129,6 +129,12 @@ server. It is not a rendering experiment and consumes no evaluation metric.
   `waymo-open-dataset-tf-2-11-0==1.6.1`, plus CPU-only PyTorch 1.13.1 for the
   released color projection's `grid_sample`; it never shares the DGGT or
   AD-GS training environment.
+- Install the sole official Linux Waymo 1.6.1 wheel directly, require exact
+  size `4,041,796` bytes and SHA-256
+  `2d0d4a4bbc59fe2fc8e19e9958f560383e81454e1c0662ad2e642d0797ce7f6e`,
+  and retain the released README's `--no-dependencies` policy. This pins the
+  compiled dataset reader without importing the wheel's full historical
+  dependency set into the deliberately minimal preprocessing environment.
 
 ### Data pass gate
 
