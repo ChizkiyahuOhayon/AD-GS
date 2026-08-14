@@ -59,6 +59,55 @@ def summarize_tree(value):
     return {"type": type(value).__name__, "repr": repr(value)}
 
 
+def iter_tensors(value):
+    if torch.is_tensor(value):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from iter_tensors(item)
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            yield from iter_tensors(item)
+
+
+def evaluate_gate(predictions, peak_allocated_mib, sequence_length=4):
+    required_keys = {
+        "pose_enc",
+        "world_points",
+        "world_points_conf",
+        "gs_map",
+        "gs_conf",
+        "dynamic_conf",
+        "depth",
+        "depth_conf",
+    }
+    missing_keys = sorted(required_keys - predictions.keys())
+    required_values = [
+        predictions[key] for key in sorted(required_keys - set(missing_keys))
+    ]
+    required_tensors = [value for value in required_values if torch.is_tensor(value)]
+    output_tensors = list(iter_tensors(predictions))
+
+    gate = {
+        "missing_required_keys": missing_keys,
+        "required_outputs_are_tensors": len(required_tensors) == len(required_keys),
+        "required_outputs_nonempty": all(value.numel() > 0 for value in required_tensors),
+        "all_output_tensors_finite": all(
+            not value.is_floating_point() or bool(torch.isfinite(value).all().item())
+            for value in output_tensors
+        ),
+        "required_sequence_dimension_matches": all(
+            value.ndim >= 2 and value.shape[1] == sequence_length
+            for value in required_tensors
+        ),
+        "peak_allocated_below_44_gib": peak_allocated_mib < 44 * 1024,
+    }
+    gate["passed"] = all(
+        value for key, value in gate.items() if key != "missing_required_keys"
+    ) and not missing_keys
+    return gate
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dggt-root", type=Path, required=True)
@@ -98,40 +147,8 @@ def main():
     torch.cuda.synchronize()
     wall_time = time.perf_counter() - start
 
-    required_keys = {
-        "pose_enc",
-        "world_points",
-        "world_points_conf",
-        "gs_map",
-        "gs_conf",
-        "dynamic_conf",
-        "depth",
-        "depth_conf",
-    }
-    missing_keys = sorted(required_keys - predictions.keys())
-    required_tensors = [
-        predictions[key]
-        for key in sorted(required_keys - set(missing_keys))
-        if torch.is_tensor(predictions[key])
-    ]
-    all_finite = all(
-        not value.is_floating_point() or bool(torch.isfinite(value).all().item())
-        for value in required_tensors
-    )
-    sequence_is_four = all(
-        value.ndim >= 2 and value.shape[1] == 4 for value in required_tensors
-    )
     peak_allocated_mib = torch.cuda.max_memory_allocated() / 1024**2
-    gate = {
-        "missing_required_keys": missing_keys,
-        "required_outputs_are_tensors": len(required_tensors) == len(required_keys),
-        "required_outputs_all_finite": all_finite,
-        "required_sequence_dimension_is_four": sequence_is_four,
-        "peak_allocated_below_44_gib": peak_allocated_mib < 44 * 1024,
-    }
-    gate["passed"] = all(
-        value for key, value in gate.items() if key != "missing_required_keys"
-    ) and not missing_keys
+    gate = evaluate_gate(predictions, peak_allocated_mib)
 
     result = {
         "experiment_id": "EXP-001",
