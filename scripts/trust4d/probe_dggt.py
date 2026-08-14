@@ -3,7 +3,9 @@
 
 import argparse
 import hashlib
+import importlib.metadata
 import json
+import os
 import subprocess
 import sys
 import time
@@ -20,6 +22,12 @@ except ImportError:
 EXPECTED_DGGT_COMMIT = "a3276d2bbe4cbb03bcc117830b1836110a27adeb"
 EXPECTED_CHECKPOINT_SIZE_BYTES = 5_411_266_466
 EXPECTED_IMAGE_COUNT = 4
+MINIMUM_RESERVED_MARGIN_MIB = 4096
+EXPECTED_PACKAGE_VERSIONS = {
+    "torch": "2.4.1",
+    "torchvision": "0.19.1",
+    "gsplat": "1.5.3",
+}
 
 
 def file_sha256(path):
@@ -126,7 +134,32 @@ def load_verified_selection(path, expected_count=EXPECTED_IMAGE_COUNT):
     }
 
 
-def evaluate_gate(predictions, peak_allocated_mib, sequence_length=4):
+def verify_runtime_packages(version_getter=None):
+    if version_getter is None:
+        version_getter = importlib.metadata.version
+    actual = {}
+    for package in (*EXPECTED_PACKAGE_VERSIONS, "scikit-learn"):
+        try:
+            actual[package] = version_getter(package)
+        except importlib.metadata.PackageNotFoundError as error:
+            raise ValueError(f"required package is not installed: {package}") from error
+    mismatches = {
+        package: {"expected": expected, "actual": actual[package]}
+        for package, expected in EXPECTED_PACKAGE_VERSIONS.items()
+        if actual[package].split("+", 1)[0] != expected
+    }
+    if mismatches:
+        raise ValueError(f"runtime package version mismatch: {mismatches}")
+    return actual
+
+
+def evaluate_gate(
+    predictions,
+    peak_allocated_mib,
+    peak_reserved_mib,
+    total_memory_mib,
+    sequence_length=4,
+):
     required_keys = {
         "pose_enc",
         "world_points",
@@ -156,7 +189,11 @@ def evaluate_gate(predictions, peak_allocated_mib, sequence_length=4):
             value.ndim >= 2 and value.shape[1] == sequence_length
             for value in required_tensors
         ),
-        "peak_allocated_below_44_gib": peak_allocated_mib < 44 * 1024,
+        "peak_allocated_not_above_reserved": peak_allocated_mib
+        <= peak_reserved_mib,
+        "reserved_memory_margin_at_least_4096_mib": total_memory_mib
+        - peak_reserved_mib
+        >= MINIMUM_RESERVED_MARGIN_MIB,
     }
     gate["passed"] = all(
         value for key, value in gate.items() if key != "missing_required_keys"
@@ -174,6 +211,7 @@ def main():
 
     dggt_root = args.dggt_root.expanduser().resolve()
     checkpoint_path = args.checkpoint.expanduser().resolve()
+    runtime_packages = verify_runtime_packages()
     source_contract = verify_source_contract(dggt_root)
     checkpoint_contract = verify_checkpoint(checkpoint_path)
     selection_contract = load_verified_selection(args.selection)
@@ -190,6 +228,10 @@ def main():
 
     torch.manual_seed(0)
     device = torch.device("cuda:0")
+    gpu_name = torch.cuda.get_device_name(0)
+    if gpu_name != "NVIDIA A40":
+        raise RuntimeError(f"EXP-001 requires NVIDIA A40, got {gpu_name}")
+    total_memory_mib = torch.cuda.get_device_properties(0).total_memory / 1024**2
     model = VGGT().to(device).eval()
     checkpoint = torch.load(checkpoint_path, map_location="cpu")
     model.load_state_dict(checkpoint, strict=True)
@@ -209,12 +251,19 @@ def main():
     wall_time = time.perf_counter() - start
 
     peak_allocated_mib = torch.cuda.max_memory_allocated() / 1024**2
-    gate = evaluate_gate(predictions, peak_allocated_mib)
+    peak_reserved_mib = torch.cuda.max_memory_reserved() / 1024**2
+    gate = evaluate_gate(
+        predictions,
+        peak_allocated_mib,
+        peak_reserved_mib,
+        total_memory_mib,
+    )
 
     result = {
         "experiment_id": "EXP-001",
         "dggt_commit": source_contract["commit"],
         "source": source_contract,
+        "runtime_packages": runtime_packages,
         "checkpoint": checkpoint_contract,
         "selection_manifest": selection_contract,
         "environment": {
@@ -222,15 +271,18 @@ def main():
             "torch": torch.__version__,
             "cuda_runtime": torch.version.cuda,
             "cudnn": torch.backends.cudnn.version(),
-            "gpu": torch.cuda.get_device_name(0),
+            "gpu": gpu_name,
+            "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
             "compute_capability": list(torch.cuda.get_device_capability(0)),
+            "total_memory_mib": total_memory_mib,
         },
         "model_parameters": sum(parameter.numel() for parameter in model.parameters()),
         "input": tensor_summary(images),
         "outputs": summarize_tree(predictions),
         "wall_time_seconds": wall_time,
         "peak_memory_allocated_mib": peak_allocated_mib,
-        "peak_memory_reserved_mib": torch.cuda.max_memory_reserved() / 1024**2,
+        "peak_memory_reserved_mib": peak_reserved_mib,
+        "reserved_memory_margin_mib": total_memory_mib - peak_reserved_mib,
         "gate": gate,
     }
 

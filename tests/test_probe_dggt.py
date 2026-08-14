@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from importlib.metadata import PackageNotFoundError
 from pathlib import Path
 from unittest import mock
 
@@ -13,6 +14,7 @@ from scripts.trust4d.probe_dggt import (
     load_verified_selection,
     tensor_summary,
     verify_checkpoint,
+    verify_runtime_packages,
     verify_source_contract,
 )
 from scripts.trust4d.select_waymo_training_frames import select_training_frames
@@ -53,34 +55,44 @@ class ProbeDggtTest(unittest.TestCase):
         return scene, selection_path
 
     def test_valid_contract_passes(self):
-        gate = evaluate_gate(valid_predictions(), peak_allocated_mib=1024)
+        gate = evaluate_gate(
+            valid_predictions(),
+            peak_allocated_mib=1024,
+            peak_reserved_mib=2048,
+            total_memory_mib=46068,
+        )
         self.assertTrue(gate["passed"])
 
     def test_missing_required_key_fails(self):
         predictions = valid_predictions()
         del predictions["depth"]
-        gate = evaluate_gate(predictions, peak_allocated_mib=1024)
+        gate = evaluate_gate(predictions, 1024, 2048, 46068)
         self.assertFalse(gate["passed"])
         self.assertEqual(gate["missing_required_keys"], ["depth"])
 
     def test_nonfinite_optional_output_fails(self):
         predictions = valid_predictions()
         predictions["semantic_logits"][0, 0, 0, 0] = float("nan")
-        gate = evaluate_gate(predictions, peak_allocated_mib=1024)
+        gate = evaluate_gate(predictions, 1024, 2048, 46068)
         self.assertFalse(gate["passed"])
         self.assertFalse(gate["all_output_tensors_finite"])
 
     def test_wrong_sequence_dimension_fails(self):
         predictions = valid_predictions()
         predictions["gs_map"] = torch.zeros(1, 3, 2, 12)
-        gate = evaluate_gate(predictions, peak_allocated_mib=1024)
+        gate = evaluate_gate(predictions, 1024, 2048, 46068)
         self.assertFalse(gate["passed"])
         self.assertFalse(gate["required_sequence_dimension_matches"])
 
-    def test_memory_limit_is_strict(self):
-        gate = evaluate_gate(valid_predictions(), peak_allocated_mib=44 * 1024)
+    def test_memory_margin_requires_full_4096_mib(self):
+        gate = evaluate_gate(valid_predictions(), 1024, 46068 - 4096 + 1, 46068)
         self.assertFalse(gate["passed"])
-        self.assertFalse(gate["peak_allocated_below_44_gib"])
+        self.assertFalse(gate["reserved_memory_margin_at_least_4096_mib"])
+
+        boundary_gate = evaluate_gate(
+            valid_predictions(), 1024, 46068 - 4096, 46068
+        )
+        self.assertTrue(boundary_gate["passed"])
 
     def test_summary_reports_only_finite_range(self):
         summary = tensor_summary(torch.tensor([1.0, float("inf"), 3.0]))
@@ -112,6 +124,38 @@ class ProbeDggtTest(unittest.TestCase):
             checkpoint.write_bytes(b"abc")
             with self.assertRaisesRegex(ValueError, "size mismatch"):
                 verify_checkpoint(checkpoint, expected_size=4)
+
+    def test_runtime_contract_accepts_cuda_suffix(self):
+        versions = {
+            "torch": "2.4.1+cu121",
+            "torchvision": "0.19.1+cu121",
+            "gsplat": "1.5.3",
+            "scikit-learn": "1.5.2",
+        }
+        self.assertEqual(verify_runtime_packages(versions.__getitem__), versions)
+
+    def test_runtime_contract_rejects_wrong_version(self):
+        versions = {
+            "torch": "2.5.0",
+            "torchvision": "0.19.1",
+            "gsplat": "1.5.3",
+            "scikit-learn": "1.5.2",
+        }
+        with self.assertRaisesRegex(ValueError, "version mismatch"):
+            verify_runtime_packages(versions.__getitem__)
+
+    def test_runtime_contract_rejects_missing_package(self):
+        def version_getter(package):
+            if package == "scikit-learn":
+                raise PackageNotFoundError(package)
+            return {
+                "torch": "2.4.1",
+                "torchvision": "0.19.1",
+                "gsplat": "1.5.3",
+            }[package]
+
+        with self.assertRaisesRegex(ValueError, "scikit-learn"):
+            verify_runtime_packages(version_getter)
 
     def test_selection_manifest_is_rederived(self):
         with tempfile.TemporaryDirectory() as root:
