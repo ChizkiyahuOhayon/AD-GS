@@ -87,6 +87,7 @@ training.
 | EXP-000 | locked | complete (local, zero GPU) | DGGT is suitable only as an offline, separately-environmented teacher; inspect actual outputs before integration |
 | DATA-001 | locked | waiting for authenticated Waymo path/download | Prepare and validate only AD-GS Waymo scene006 |
 | DATA-002 | locked | not started; blocked by DATA-001 and pseudo-label generation | Validate complete scene006 inputs before the A40 baseline |
+| ENV-001 | locked | not started | Build a pinned, isolated AD-GS train/render environment |
 | EXP-001 | locked | inventory complete; Waymo path unresolved; no GPU run | DGGT single-clip output/VRAM contract |
 | EXP-002 | draft; do not run | blocked by EXP-001 | intervention disagreement versus evaluation-only motion error |
 
@@ -181,6 +182,40 @@ any 60k optimization starts.
   a nonempty `colmap.ply` with finite `x,y,z` vertices.
 - Record file sizes and SHA-256 digests in one JSON result. Any failure stops
   baseline training; the gate is not relaxed after observing metrics.
+
+## ENV-001 — pinned AD-GS baseline runtime
+
+The released `environment.yaml` pins Python 3.7 and PyTorch 1.13.1, while
+PyTorch3D v0.7.2 and later officially require Python 3.8--3.10 and the last
+release supporting Python 3.7 (v0.7.1) lists support only through PyTorch
+1.12. Installing an unversioned 2026 PyTorch3D `main` is not a reproduction.
+
+### Locked resolution
+
+- Use a new Conda environment named `trust4d-adgs-baseline`; never reuse an
+  inventory environment based only on its name.
+- Change only Python 3.7 to Python 3.8. Preserve released PyTorch 1.13.1,
+  torchvision 0.14.1, and CUDA 11.7 runtime wheels. Python minor version is
+  treated as infrastructure, not a treatment variable.
+- Pin PyTorch3D v0.7.4 to commit
+  `297020a4b1d7492190cb4a909cafbd2c81a12cb5`. It is the first stable choice in
+  the released Torch generation whose documented Python range includes 3.8;
+  only `pytorch3d.ops.knn_points` is used by AD-GS.
+- Compile the vendored `simple-knn` tree
+  `d5b756edadeef66644510a23633c23803d6b61db` and
+  `depth-diff-gaussian-rasterization` tree
+  `b78a10882e6a99927b74303a83cb2c107666cdd3` from temporary copies so build
+  artifacts do not dirty the research checkout. Use system CUDA 11.8 only as
+  the extension compiler, with A40 architecture `8.6`; the PyTorch runtime
+  remains CUDA 11.7.
+- Install only packages imported by train/render and their resolved
+  dependencies, using the released versions where specified. COLMAP, DPT,
+  Grounded-SAM-2, CoTracker, and DGGT remain separate preparation/teacher
+  environments.
+- Before acceptance, require exact critical package versions, import both CUDA
+  extensions, execute `pytorch3d.ops.knn_points` and `simple_knn.distCUDA2` on
+  physical GPU 0, and retain `pip freeze`, compiler/GPU inventory, build logs,
+  and a smoke-test JSON. Failure stops baseline training.
 
 ## EXP-001 — A40 DGGT single-clip contract probe
 
