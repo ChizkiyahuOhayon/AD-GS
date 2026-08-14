@@ -85,7 +85,7 @@ training.
 | ID | Protocol state | Execution state | Decision |
 |---|---|---|---|
 | EXP-000 | locked | complete (local, zero GPU) | DGGT is suitable only as an offline, separately-environmented teacher; inspect actual outputs before integration |
-| EXP-001 | locked | waiting for A40 data-path inventory | DGGT single-clip output/VRAM contract |
+| EXP-001 | locked | inventory complete; Waymo path unresolved; no GPU run | DGGT single-clip output/VRAM contract |
 | EXP-002 | draft; do not run | blocked by EXP-001 | intervention disagreement versus evaluation-only motion error |
 
 ## EXP-000 — source and protocol audit
@@ -181,7 +181,13 @@ authorize changing AD-GS.
 
 ### Result
 
-Pending.
+Preflight inventory received at `2026-08-14T15:59:23+08:00` and recorded in
+`server.md`. The driver (`535.309.01`) is compatible with a PyTorch CUDA 12.1
+wheel, physical GPU 0 was idle, and DGGT was at the locked commit. The server
+AD-GS checkout was still at `aa28448` and must be updated. The bounded NAS
+search found no authentic Waymo TFRecord or processed `scene006`; its
+`scene0060_00` hits are ScanNet and are invalid for this experiment. EXP-001
+therefore has not executed and remains pending data-path resolution.
 
 ## EXP-002 — intervention reliability diagnostic (draft, not authorized)
 
