@@ -87,6 +87,7 @@ training.
 | EXP-000 | locked | complete (local, zero GPU) | DGGT is suitable only as an offline, separately-environmented teacher; inspect actual outputs before integration |
 | DATA-001 | locked | waiting for authenticated Waymo path/download | Prepare and validate only AD-GS Waymo scene006 |
 | DATA-002 | locked | not started; blocked by DATA-001 and pseudo-label generation | Validate complete scene006 inputs before the A40 baseline |
+| ENV-002 | locked | not started | Build pinned, separate depth/segmentation/flow/COLMAP preparation runtimes |
 | ENV-001 | locked | not started | Build a pinned, isolated AD-GS train/render environment |
 | EXP-001 | locked | inventory complete; Waymo path unresolved; no GPU run | DGGT single-clip output/VRAM contract |
 | BASE-001 | locked | not started; blocked by DATA-002 and ENV-001 | Reproduce the released 60k AD-GS scene006 baseline on one A40 |
@@ -162,6 +163,74 @@ DATA-001 is sufficient for the image-only DGGT probe but not for AD-GS
 training. After the released depth, semantic/sky, flow, point segmentation,
 and COLMAP stages run, one validator must establish baseline readiness before
 any 60k optimization starts.
+
+### Locked generators and runtimes (ENV-002)
+
+- Preserve the released AD-GS generator files byte-for-byte:
+  `run-dpt.py` SHA-256
+  `f02545c46410b3fe8bc6b4a527ddf99a9383901eabe272c2a4e0e7450e605a1d`,
+  `semantic.py` SHA-256
+  `8429c19c6b50591103342d1205391e805866f1745a2d7cb4109e364f2911198f`,
+  `flow.py` SHA-256
+  `5d4725c7f25d077aaef31fbade55f0e9ba58b26282321b87f0bde14b5969c083`,
+  `segment_pcd.py` SHA-256
+  `acf98743fff4572cfbb0ea14a624398544b4b1eadaa3e2d2e9ea5c68802cdb57`,
+  and `colmap.py` SHA-256
+  `070437ba06cbeaf784ddc0508ebbd016936047c71519f588175ca9ecf7cd1cca`.
+- Depth uses a separate Python 3.11 environment with PyTorch 2.4.1 / CUDA
+  11.8 and Depth-Anything-V2 commit
+  `e5a2732d3ea2cddc081d7bfd708fc0bf09f812f1`, the latest upstream commit
+  preceding the AD-GS code release. Pin the ViT-L checkpoint repository to
+  revision `cbbb86a30ce19b5684b7a05155dc7e6cbc7685b9`; the file is
+  `1,341,395,338` bytes with SHA-256
+  `a7ea19fa0ed99244e67b624c72b8580b7e9553043245905be58796a608eb9345`.
+- Segmentation uses a separate Python 3.10 environment with PyTorch 2.4.1 /
+  CUDA 11.8 and Grounded-SAM-2 tag-v1 commit
+  `dd4c5141b75e4838dd486c64f773c43b4db3a07b`. Compile its connected-component
+  CUDA extension against the observed system CUDA 11.8 for A40 architecture
+  8.6. Use `sam2.1_hiera_large.pt`, exactly `898,083,611` bytes and SHA-256
+  `2647878d5dfa5098f2f8649825738a9345572bae2d4350a2468587ece47dd318`.
+  Pin the Hugging Face Grounding DINO base snapshot to revision
+  `12bdfa3120f3e7ec7b434d90674b3396eccf88eb`; its preferred
+  `model.safetensors` is `933,400,872` bytes with SHA-256
+  `5548f844c928c4b6f411fa8cbcc2bfa8dbbba437cb1d513975519f93c2a9ed21`.
+  The released script uses Transformers' model and does not import the local
+  GroundingDINO extension, so that unrelated README installation is omitted.
+- Flow uses a separate Python 3.10 / PyTorch 2.4.1 / CUDA 11.8 environment and
+  CoTracker3 commit `82e02e8029753ad4ef13cf06be7f4fc5facdda4d`, the
+  upstream head already present when AD-GS was released. Populate an isolated
+  `TORCH_HOME` cache so the released, otherwise-unpinned `torch.hub.load`
+  resolves only that checkout. Pin `scaled_offline.pth` to Hugging Face
+  revision `bf55ea50d4390e1820a267f131cd6587240fb2c5`; it is `101,890,938`
+  bytes with SHA-256
+  `2670d4562ed69326dda775a26e54883925cd11b6fc9b24cb7aa9f8078bce7834`.
+- COLMAP uses a CPU-only Python 3.10 environment with the released
+  `colmap=3.7` binary. It does not claim GPU 0 while a neural prior is running.
+- Each runtime must retain its repository commit/status, complete resolved
+  package list, checkpoint sizes/hashes, command, logs, and a real smoke result
+  before scene processing. The three neural runtimes must identify physical
+  GPU 0 as an A40; no environment name alone is accepted as evidence.
+
+### Locked scene006 generation
+
+- Refuse pre-existing `depth`, `semantic`, `sky`, `flow`, or `colmap`
+  directories and a pre-existing `colmap.ply`; partial or silently reused
+  priors are not a reproduction.
+- Run released depth inference at its default input size 518 for all 86 images.
+- Run released segmentation serially from an isolated working directory:
+  first `--text sky. --name sky`, then
+  `--text car.bus.truck.van.human. --name semantic`, both with `--step 1` and
+  physical GPU 0. They cannot run concurrently because the released script
+  deletes its relative `./outputs` directory.
+- Before point segmentation, preserve the DATA-001 `points3d.ply` with its
+  hash. Run released `segment_pcd.py` once on GPU 0, retain the unsegmented
+  backup, and record the new segmented hash.
+- Run released Waymo CoTracker flow with `--downsample 1 --step 4` on physical
+  GPU 0. Then run released COLMAP with `--cam 1` and its default CPU feature
+  extraction/matching path.
+- Record a stage exit code and wall time for every command. Only after all
+  stages exit zero may the complete DATA-002 validator run. Generator failure
+  is diagnosed from retained stage logs; no later stage may conceal it.
 
 ### Locked gate
 
