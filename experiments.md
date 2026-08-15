@@ -88,6 +88,7 @@ training.
 | DATA-001 | locked | waiting for authenticated Waymo path/download | Prepare and validate only AD-GS Waymo scene006 |
 | DATA-003 | locked | manifest/downloader and multi-scene preprocessor ready at `2625abb`; not executed | Acquire exact three-scene diagnostic subset first; defer five main-table scenes until the research gate passes |
 | DATA-002 | locked | runner ready at `80ade52`; server execution blocked by DATA-001 and ENV-002 | Validate complete scene006 inputs before the A40 baseline |
+| DATA-004 | locked | protocol only; blocked by DATA-003 and ENV-002/SAM | Generate only the extra scene026/090 semantic masks required by EXP-002 |
 | ENV-002 | locked | setup and smoke code ready at `eaae6cc`; not executed on the server | Build pinned, separate depth/segmentation/flow/COLMAP preparation runtimes |
 | ENV-001 | locked | setup/smoke code ready; official-source audit passes at `13d679d`; not executed | Build a pinned, isolated AD-GS train/render environment |
 | EXP-001 | locked | inventory complete; Waymo path unresolved; no GPU run | DGGT single-clip output/VRAM contract |
@@ -331,6 +332,53 @@ any 60k optimization starts.
   a nonempty `colmap.ply` with finite `x,y,z` vertices.
 - Record file sizes and SHA-256 digests in one JSON result. Any failure stops
   baseline training; the gate is not relaxed after observing metrics.
+
+## DATA-004 — cost-gated EXP-002 semantic priors
+
+EXP-002 needs object masks for all three diagnostic scenes, but only scene006
+needs the complete depth/sky/flow/COLMAP input set for BASE-001. To avoid an
+unnecessary two-scene full-prior bill, DATA-004 generates only the additional
+object-semantic priors for `scene026` and `scene090`.
+
+### Locked inputs and execution
+
+- Require the passed DATA-003 processed scenes with exactly `101` and `103`
+  consecutive images, respectively, their released camera arrays, full frame
+  ranges, and every-fourth-frame validation split. Process exactly
+  `scene026`, then `scene090`; accepting another scene or a partial list is a
+  protocol failure.
+- Require the passed ENV-002/SAM evidence, environment `trust4d-sam`,
+  Grounded-SAM-2 commit `dd4c5141b75e4838dd486c64f773c43b4db3a07b`,
+  the pinned SAM2 and Grounding DINO weights, and released `semantic.py`
+  SHA-256 `8429c19c6b50591103342d1205391e805866f1745a2d7cb4109e364f2911198f`.
+- Run the released command serially on physical GPU 0 with
+  `--text car.bus.truck.van.human. --name semantic --step 1`. Full image
+  sequences are mandatory: although Grounding DINO is invoked at every frame,
+  the released script carries SAM2 mask state across frames, so an anchor-only
+  image subset is not equivalent.
+- Refuse a pre-existing `semantic` directory or `semantic.mp4`. Generate into
+  a new same-filesystem staging scene whose `image` directory is a symlink to
+  the immutable processed images. Validate the staged masks before atomically
+  publishing them to the processed scene. Preserve a failed staging directory
+  and logs for diagnosis; never merge partial masks or silently resume them.
+- Scenes run serially because the released script owns and deletes the relative
+  Grounded-SAM `./outputs` directory. No DATA-004 command may create depth,
+  sky, flow, point segmentation, or COLMAP outputs.
+
+### Locked validation and evidence
+
+- Require exactly one `semantic/mask_NNNNNN.npy` per source image. Every mask
+  must be a finite, nonnegative integer array of exact source-image shape, and
+  each scene must contain at least one positive object pixel. Record every
+  input camera/image hash and every mask size/hash; `semantic.mp4` is optional
+  diagnostic output and is hashed when present.
+- Use a new evidence directory outside Git. Record the clean official-source
+  audit, exact command, dependency and checkpoint hashes, ENV-002/SAM smoke
+  hash, package freeze, GPU snapshots, per-scene stdout/stderr/exit code/wall
+  time, staging/final paths, validation JSON, and an artifact SHA-256 manifest.
+- DATA-004 passes only when both scenes publish and validate. A failure remains
+  a preparation failure, not permission to change masks, prompts, scene
+  selection, EXP-002 queries, or thresholds.
 
 ## ENV-001 — pinned AD-GS baseline runtime
 
