@@ -273,6 +273,34 @@ bash scripts/nuscene/run-nuscenes.sh cuda:0
 ```
 The results can be found in ```./output```.
 
+### Observation-anchored deformation (experimental)
+
+Dynamic LiDAR points are observed at different timestamps. The optional
+observation anchor represents each Gaussian relative to its own acquisition
+time instead of an arbitrary global spline origin:
+
+```math
+\mu_g(t)=\mu_g^0+\Delta\mu_g(t)-\Delta\mu_g(t_g),\qquad
+R_g(t)=\Delta R_g(t)\Delta R_g(t_g)^{-1}R_g^0.
+```
+
+It adds no parameters or auxiliary models and is disabled by default. Enable it
+for both training and rendering through the saved model configuration:
+
+```shell
+python train.py -c ./arguments/waymo.py -s ./data/waymo/scene006 \
+    -m ./output/waymo-oa/scene006 --data_device cuda:0 \
+    --anchor_time_deformation
+python render.py -c ./arguments/waymo.py -m ./output/waymo-oa/scene006 \
+    --data_device cuda:0 -v
+```
+
+Run the temporal-function tests with:
+
+```shell
+python -m unittest discover -s tests -v
+```
+
 ## Acknowledgments
 
 This framework is adapted from [Gaussian Splatting](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/). We also thank [DPTv2](https://github.com/DepthAnything/Depth-Anything-V2), [Grounded-SAM-2](https://github.com/IDEA-Research/Grounded-SAM-2?tab=readme-ov-file) and [Co-Tracker3](https://cotracker3.github.io/) for their great works.

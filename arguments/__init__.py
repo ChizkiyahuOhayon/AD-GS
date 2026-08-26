@@ -62,6 +62,7 @@ class ModelParams(ParamGroup):
         self.use_colmap = True
         self.default_order_downsample_ratio = 3
         self.num_cam = 1
+        self.anchor_time_deformation = False
 
         self.env_args = dict(
             resolution=8192,

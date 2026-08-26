@@ -29,6 +29,7 @@ from torch.nn.functional import normalize
 # M = [M_0, M_1, M_2, M_3, M_4]
 
 M = dict()
+POINTWISE_M = dict()
 
 def get_deboor_cox_mat(order):
     if order == 0:
@@ -172,3 +173,88 @@ def get_func_result(v, param, order_args):
 
     return result
 
+
+def get_pointwise_func_result(v, param, order_args):
+    """Evaluate one temporal function value per parameter row."""
+    v = v.reshape(-1, 1).to(device=param.device, dtype=param.dtype)
+    if v.shape[0] != param.shape[0]:
+        raise ValueError("v and param must have the same leading dimension")
+
+    result = param.new_zeros(param.shape[:-1])
+    offset = 0
+
+    def bspline_basis(u, order):
+        key = (order, param.device, param.dtype)
+        if key not in POINTWISE_M:
+            POINTWISE_M[key] = torch.as_tensor(
+                get_deboor_cox_mat(order), device=param.device, dtype=param.dtype
+            )
+        matrix = POINTWISE_M[key]
+        powers = torch.arange(order + 1, device=param.device, dtype=param.dtype)
+        return (u ** powers) @ matrix
+
+    def gather_controls(ctrl_param, start, count):
+        indices = start + torch.arange(count, device=param.device)
+        indices = indices[:, None, :].expand(-1, ctrl_param.shape[1], -1)
+        return torch.gather(ctrl_param, dim=-1, index=indices)
+
+    if order_args[0] != 0:
+        ctrl_num, order = order_args[:2]
+        interval = ctrl_num - order
+        scaled_time = v * interval
+        start = torch.floor(scaled_time).long().clamp(0, interval - 1)
+        ctrl_pts = gather_controls(
+            param[..., offset:offset + ctrl_num], start, order + 1
+        )
+        basis = bspline_basis(scaled_time - start, order)
+        result = result + torch.sum(ctrl_pts * basis[:, None, :], dim=-1)
+        offset += ctrl_num
+
+    if order_args[2] != 0:
+        order = order_args[2]
+        powers = torch.arange(1, order + 1, device=param.device, dtype=param.dtype)
+        basis = v ** powers
+        result = result + torch.sum(
+            param[..., offset:offset + order] * basis[:, None, :], dim=-1
+        )
+        offset += order
+
+    if order_args[3] != 0:
+        order = order_args[3]
+        frequencies = torch.arange(
+            1, order + 1, device=param.device, dtype=param.dtype
+        ) * np.pi
+        basis = torch.cat([torch.sin(v * frequencies), torch.cos(v * frequencies)], dim=-1)
+        result = result + torch.sum(
+            param[..., offset:offset + 2 * order] * basis[:, None, :], dim=-1
+        )
+        offset += 2 * order
+
+    if order_args[4] != 0:
+        ctrl_num, order = order_args[4:6]
+        interval = ctrl_num - order
+        scaled_time = v * interval
+        start = torch.floor(scaled_time).long().clamp(0, interval - 1)
+        ctrl_quat = gather_controls(
+            param[..., offset:offset + ctrl_num], start, order + 1
+        )
+        identity = param.new_tensor([1.0, 0.0, 0.0, 0.0]).reshape(1, 4, 1)
+        ctrl_quat = normalize((ctrl_quat + identity).permute(0, 2, 1), dim=-1)
+        ctrl_quat = ctrl_quat[..., [1, 2, 3, 0]]
+
+        basis = bspline_basis(scaled_time - start, order)
+        cumulative_basis = torch.flip(
+            torch.cumsum(torch.flip(basis, dims=(-1,)), dim=-1), dims=(-1,)
+        )[..., 1:]
+        relative = quat_product(
+            quat_conjugation(ctrl_quat[:, :-1]), ctrl_quat[:, 1:]
+        )
+        increments = rotvec_to_unitquat(
+            unitquat_to_rotvec(relative) * cumulative_basis[..., None]
+        )
+        value = ctrl_quat[:, 0]
+        for index in range(increments.shape[1]):
+            value = quat_product(value, increments[:, index])
+        result = result + value[..., [3, 0, 1, 2]]
+
+    return result

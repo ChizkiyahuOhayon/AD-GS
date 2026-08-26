@@ -154,7 +154,9 @@ POINT_CLOUD_FUNC = {
 
 def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParams, skip_train : bool, skip_test : bool, mode : str, output_video : bool, cam_order : list):
     with torch.no_grad():
-        gaussians = GaussianModel(dataset.sh_degree, dataset.order_args)
+        gaussians = GaussianModel(
+            dataset.sh_degree, dataset.order_args, dataset.anchor_time_deformation
+        )
         env_map = EnvironmentMap(**dataset.env_args)
         scene = Scene(dataset, gaussians, env_map, load_iteration=iteration, shuffle=False)
         print(put_color("[Render Mode] " + mode, color='violet'))

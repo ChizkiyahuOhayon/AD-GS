@@ -33,7 +33,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
     first_iter = 0
     tb_writer = prepare_output_and_logger(dataset)
 
-    gaussians = GaussianModel(dataset.sh_degree, dataset.order_args)
+    gaussians = GaussianModel(
+        dataset.sh_degree, dataset.order_args, dataset.anchor_time_deformation
+    )
     env_map = EnvironmentMap(**dataset.env_args)
     scene = Scene(dataset, gaussians, env_map)
 

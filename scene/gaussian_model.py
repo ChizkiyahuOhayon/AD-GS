@@ -19,7 +19,7 @@ from plyfile import PlyData, PlyElement
 from utils.sh_utils import RGB2SH
 from simple_knn._C import distCUDA2
 from utils.graphics_utils import BasicPointCloud
-from utils.general_utils import strip_symmetric, build_scaling_rotation, quaternion_multiply
+from utils.general_utils import strip_symmetric, build_scaling_rotation, quaternion_multiply, quaternion_conjugate
 from pytorch3d.ops import knn_points
 from utils.func_utils import *
 from utils.system_utils import put_color
@@ -43,7 +43,7 @@ class GaussianModel:
 
         self.rotation_activation = torch.nn.functional.normalize
 
-    def __init__(self, sh_degree : int, order_args):
+    def __init__(self, sh_degree : int, order_args, anchor_time_deformation=False):
         self.active_sh_degree = 0
         self.max_sh_degree = sh_degree
         self._scene_xyz = torch.empty(0)
@@ -69,6 +69,7 @@ class GaussianModel:
         self._obj_opacity = torch.empty(0)
 
         self.order_args = order_args
+        self.anchor_time_deformation = anchor_time_deformation
         self.xyz_deform_param = torch.empty(0)
         self.background_deform_param = torch.empty(0)
         self.rotation_deform_param = torch.empty(0)
@@ -174,7 +175,12 @@ class GaussianModel:
         obj_xyz = self.get_obj_xyz
 
         # per partical deformation
-        obj_xyz = obj_xyz + get_func_result(t, self.xyz_deform_param, self.order_args['xyz'])
+        obj_deformation = get_func_result(t, self.xyz_deform_param, self.order_args['xyz'])
+        if self.anchor_time_deformation:
+            obj_deformation = obj_deformation - get_pointwise_func_result(
+                self.gs_time, self.xyz_deform_param, self.order_args['xyz']
+            )
+        obj_xyz = obj_xyz + obj_deformation
 
         scene_xyz = self.get_scene_xyz
         xyz = torch.cat([scene_xyz, obj_xyz], dim=0)
@@ -186,7 +192,15 @@ class GaussianModel:
     
     def get_deformed_rotation(self, t, bias_rot=None):
         obj_rotation = get_func_result(t, self.rotation_deform_param, self.order_args['rotation'])  # probably too slow if multiplied with self._obj_rotation
-        if self.order_args['rotation'][4] == 0:
+        if self.anchor_time_deformation and self.order_args['rotation'][4] != 0:
+            anchor_rotation = get_pointwise_func_result(
+                self.gs_time, self.rotation_deform_param, self.order_args['rotation']
+            )
+            relative_rotation = quaternion_multiply(
+                obj_rotation, quaternion_conjugate(anchor_rotation)
+            )
+            obj_rotation = quaternion_multiply(relative_rotation, self._obj_rotation)
+        elif self.order_args['rotation'][4] == 0:
             obj_rotation = self._obj_rotation + obj_rotation
 
         if bias_rot is not None:
