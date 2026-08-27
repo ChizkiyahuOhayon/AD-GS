@@ -22,6 +22,7 @@ from utils.graphics_utils import BasicPointCloud
 from utils.general_utils import strip_symmetric, build_scaling_rotation, quaternion_multiply, quaternion_conjugate
 from pytorch3d.ops import knn_points
 from utils.func_utils import *
+from utils.densification_utils import gradient_persistence_weight
 from utils.system_utils import put_color
 
 class GaussianModel:
@@ -55,6 +56,7 @@ class GaussianModel:
 
         self.max_radii2D = torch.empty(0)
         self.xyz_gradient_accum = torch.empty(0)
+        self.xyz_gradient_sq_accum = torch.empty(0)
         self.denom = torch.empty(0)
         self.optimizer = None
         self.percent_dense = 0.0
@@ -351,8 +353,11 @@ class GaussianModel:
         
     def training_setup(self, training_args):
         self.percent_dense = training_args.percent_dense
+        self.densify_persistence_gamma = training_args.densify_persistence_gamma
         pts_num = self.get_pts_num
         self.xyz_gradient_accum = torch.zeros((pts_num, 1), device="cuda")
+        if self.densify_persistence_gamma > 0:
+            self.xyz_gradient_sq_accum = torch.zeros((pts_num, 1), device="cuda")
         self.denom = torch.zeros((pts_num, 1), device="cuda")
         self.object_extent = training_args.object_extent if training_args.object_extent is not None else self.object_extent
         self.cameras_extent = max(self.cameras_extent, training_args.min_camera_extent)
@@ -624,6 +629,8 @@ class GaussianModel:
 
         valid_mask = torch.cat([valid_scene_mask, valid_obj_mask], dim=0)
         self.xyz_gradient_accum = self.xyz_gradient_accum[valid_mask]
+        if self.densify_persistence_gamma > 0:
+            self.xyz_gradient_sq_accum = self.xyz_gradient_sq_accum[valid_mask]
         self.denom = self.denom[valid_mask]
         self.max_radii2D = self.max_radii2D[valid_mask]
 
@@ -722,6 +729,8 @@ class GaussianModel:
 
         pts_num = self.get_pts_num
         self.xyz_gradient_accum = torch.zeros((pts_num, 1), device="cuda")
+        if self.densify_persistence_gamma > 0:
+            self.xyz_gradient_sq_accum = torch.zeros((pts_num, 1), device="cuda")
         self.denom = torch.zeros((pts_num, 1), device="cuda")
         self.max_radii2D = torch.zeros((pts_num,), device="cuda")
 
@@ -853,6 +862,13 @@ class GaussianModel:
 
         # Extract points that satisfy the gradient condition
         obj_mask = self.get_obj_mask
+        if self.densify_persistence_gamma > 0:
+            grads[~obj_mask] *= gradient_persistence_weight(
+                self.xyz_gradient_accum[~obj_mask],
+                self.xyz_gradient_sq_accum[~obj_mask],
+                self.denom[~obj_mask],
+                self.densify_persistence_gamma,
+            ).squeeze(-1)
         scene_densify_mask = grads[~obj_mask] >= max_scene_grad
         obj_densify_mask = grads[obj_mask] >= max_obj_grad
 
@@ -877,5 +893,8 @@ class GaussianModel:
     def add_densification_stats(self, render_pkg):
         viewspace_point_tensor = render_pkg['viewspace_points']
         update_filter = render_pkg['visibility_filter']
-        self.xyz_gradient_accum[update_filter] += torch.norm(viewspace_point_tensor.grad[update_filter,:2], dim=-1, keepdim=True)
+        gradients = torch.norm(viewspace_point_tensor.grad[update_filter,:2], dim=-1, keepdim=True)
+        self.xyz_gradient_accum[update_filter] += gradients
+        if self.densify_persistence_gamma > 0:
+            self.xyz_gradient_sq_accum[update_filter] += gradients.square()
         self.denom[update_filter] += 1

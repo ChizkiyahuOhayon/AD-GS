@@ -109,6 +109,7 @@ class OptimizationParams(ParamGroup):
         self.densify_until_iter = 30_000
         self.densify_scene_grad_threshold = 0.0002
         self.densify_obj_grad_threshold = 0.0002
+        self.densify_persistence_gamma = 0.0
         self.data_sample = 'stack'
 
         self.position_deform_lr_scale = 0.2
