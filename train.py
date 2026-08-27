@@ -152,7 +152,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
                 gaussians.add_densification_stats(render_pkg)
 
                 if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
-                    gaussians.densify_and_prune(opt.densify_scene_grad_threshold, opt.densify_obj_grad_threshold, 0.005, iteration > opt.opacity_reset_interval)
+                    gaussians.densify_and_prune(opt.densify_scene_grad_threshold, opt.densify_obj_grad_threshold, 0.005, iteration > opt.opacity_reset_interval, opt.corrective_pair_split)
                 elif gaussians.use_near_idx and iteration % opt.near_idx_reset_interval == 0:
                     gaussians.set_obj_near_idx()
                 

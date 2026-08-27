@@ -12,6 +12,7 @@
 import torch
 import numpy as np
 from utils.general_utils import inverse_sigmoid, get_expon_lr_func, build_rotation
+from utils.densification_utils import corrective_pair_samples
 from torch import nn
 import os
 from utils.system_utils import mkdir_p
@@ -711,14 +712,32 @@ class GaussianModel:
         self.denom = torch.zeros((pts_num, 1), device="cuda")
         self.max_radii2D = torch.zeros((pts_num,), device="cuda")
 
-    def densify_and_split(self, scene_densify_mask, obj_densify_mask, N=2):
+    def densify_and_split(self, scene_densify_mask, obj_densify_mask, N=2, corrective_pair_split=False):
         # Extract points that satisfy the scaling condition
         scene_densify_mask = scene_densify_mask & (torch.max(self.get_scene_scaling, dim=1).values > self.scene_extent * self.percent_dense)
         obj_densify_mask = obj_densify_mask & (torch.max(self.get_obj_scaling, dim=1).values > self.object_extent * self.percent_dense)
 
-        stds = self.get_scene_scaling[scene_densify_mask].repeat(N, 1)
+        scene_scaling = self.get_scene_scaling[scene_densify_mask]
+        stds = scene_scaling.repeat(N, 1)
         samples = torch.normal(mean=0.0, std=stds)
-        rots = build_rotation(self._scene_rotation[scene_densify_mask]).repeat(N, 1, 1)
+        scene_rots = build_rotation(self._scene_rotation[scene_densify_mask])
+        if corrective_pair_split and N == 2:
+            scene_xyz_group = next(
+                (group for group in self.optimizer.param_groups
+                 if group["name"] == "scene_xyz"),
+                None,
+            )
+            state = None if scene_xyz_group is None else self.optimizer.state.get(scene_xyz_group["params"][0])
+            if state is not None and "exp_avg" in state and "exp_avg_sq" in state:
+                samples = corrective_pair_samples(
+                    scene_scaling,
+                    scene_rots,
+                    state["exp_avg"][scene_densify_mask],
+                    state["exp_avg_sq"][scene_densify_mask],
+                    samples,
+                    scene_xyz_group["eps"],
+                )
+        rots = scene_rots.repeat(N, 1, 1)
         new_scene_xyz = torch.bmm(rots, samples.unsqueeze(-1)).squeeze(-1) + self.get_scene_xyz[scene_densify_mask].repeat(N, 1)
         new_scene_scaling = self.scaling_inverse_activation(self.get_scene_scaling[scene_densify_mask].repeat(N, 1) / (0.8 * N))
         new_scene_rotation = self._scene_rotation[scene_densify_mask].repeat(N, 1)
@@ -832,7 +851,7 @@ class GaussianModel:
         anchor = xyz[torch.randperm(xyz.shape[0], device='cuda')[:xyz.shape[0] // K]]
         self.obj_near_idx = knn_points(anchor[None], xyz[None], K=K).idx.squeeze()  # P, K
 
-    def densify_and_prune(self, max_scene_grad, max_obj_grad, min_opacity, prune_big_points):
+    def densify_and_prune(self, max_scene_grad, max_obj_grad, min_opacity, prune_big_points, corrective_pair_split=False):
         grads = self.xyz_gradient_accum / self.denom
         grads[grads.isnan()] = 0.0
         grads = torch.norm(grads, dim=-1)
@@ -846,7 +865,7 @@ class GaussianModel:
         self.densify_and_clone(scene_densify_mask, obj_densify_mask)
         scene_densify_mask = torch.cat([scene_densify_mask, torch.zeros((self.get_scene_xyz.shape[0] - scene_densify_mask.shape[0],), dtype=torch.bool, device='cuda')], dim=0)
         obj_densify_mask = torch.cat([obj_densify_mask, torch.zeros((self.get_obj_xyz.shape[0] - obj_densify_mask.shape[0],), dtype=torch.bool, device='cuda')], dim=0)
-        self.densify_and_split(scene_densify_mask, obj_densify_mask)
+        self.densify_and_split(scene_densify_mask, obj_densify_mask, corrective_pair_split=corrective_pair_split)
 
         scene_prune_mask = (self.get_scene_opacity < min_opacity).squeeze()
         obj_prune_mask = (self.get_obj_opacity < min_opacity).squeeze()
