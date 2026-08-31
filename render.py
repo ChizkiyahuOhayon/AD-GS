@@ -35,6 +35,7 @@ from lpipsPyTorch import lpips
 import json
 from utils.graphics_utils import fov2focal
 from utils.flow_utils import get_img_flow, flow_to_img
+from utils.waymo_camera_protocol import summarize_camera_metrics
 
 to8b = lambda x: (255.0 * np.clip(x, 0, 1)).astype(np.uint8)
 
@@ -46,6 +47,7 @@ def render_set(model_path, name, iteration, views, scene, pipeline, output_video
     makedirs(gts_path, exist_ok=True)
 
     psnrs, ssims, lpipses, lpips_alex = [], [], [], []
+    camera_metrics = {}
 
     total_time = 0.0
     renderings = dict()
@@ -56,10 +58,17 @@ def render_set(model_path, name, iteration, views, scene, pipeline, output_video
         gt = torch.clip(view.original_image.to('cuda'), 0.0, 1.0)
 
         if cal_metrics:
-            psnrs.append(psnr(rendering[None], gt[None]).item())
-            ssims.append(ssim(rendering[None], gt[None]).item())
-            lpipses.append(lpips(rendering[None], gt[None], net_type='vgg').item())
-            lpips_alex.append(lpips(rendering[None], gt[None], net_type='alex').item())
+            values = {
+                "PSNR": psnr(rendering[None], gt[None]).item(),
+                "SSIM": ssim(rendering[None], gt[None]).item(),
+                "LPIPS(VGG)": lpips(rendering[None], gt[None], net_type='vgg').item(),
+                "LPIPS(ALEX)": lpips(rendering[None], gt[None], net_type='alex').item(),
+            }
+            psnrs.append(values["PSNR"])
+            ssims.append(values["SSIM"])
+            lpipses.append(values["LPIPS(VGG)"])
+            lpips_alex.append(values["LPIPS(ALEX)"])
+            camera_metrics.setdefault(int(view.cam_id), []).append(values)
 
         torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
         torchvision.utils.save_image(gt, os.path.join(gts_path, '{0:05d}'.format(idx) + ".png"))
@@ -104,6 +113,13 @@ def render_set(model_path, name, iteration, views, scene, pipeline, output_video
         res_path = os.path.join(model_path, "results.json" if name == 'test' else "results-train.json")
         with open(res_path, 'w') as fp:
                 json.dump(res, fp, indent=True)
+        camera_res_path = os.path.join(model_path, "results-{}-by-camera.json".format(name))
+        with open(camera_res_path, 'w') as fp:
+            json.dump(
+                {"ours_{}".format(iteration): summarize_camera_metrics(camera_metrics)},
+                fp,
+                indent=True,
+            )
 
 def render_deform(model_path, name, iteration, views, scene: Scene, pipeline, output_video, cam_order):
     deform_path = os.path.join(model_path, name, "ours_{}".format(iteration), "deform")

@@ -27,6 +27,7 @@ from plyfile import PlyData, PlyElement
 from utils.sh_utils import SH2RGB
 from scene.gaussian_model import BasicPointCloud
 from utils.general_utils import PILtoTorch
+from utils.waymo_camera_protocol import infer_frame_gap, load_camera_ids
 
 
 class CameraInfo(NamedTuple):
@@ -264,7 +265,8 @@ def readWaymoInfo(path, use_colmap=False, num_cam: int = 1):
     K, R, T = meta['K'], meta['R'], meta['T']
     time_stamps = meta['time_stamps']
     is_val_list = meta['is_val_list']
-    frame_gap = num_cam / time_stamps.shape[0]
+    camera_ids = load_camera_ids(meta, time_stamps.shape[0], num_cam)
+    frame_gap = infer_frame_gap(time_stamps)
     time_scale_func = lambda x: ((x - np.min(time_stamps)) / (np.max(time_stamps) - np.min(time_stamps)))
     
     for idx, (img_path, fid) in enumerate(zip(sorted(os.listdir(os.path.join(path, "image"))), time_stamps)):
@@ -280,7 +282,7 @@ def readWaymoInfo(path, use_colmap=False, num_cam: int = 1):
                 flow[i][0] = time_scale_func(flow[i][0])
         cam = CameraInfo(
             uid=idx,
-            cam_id=idx % num_cam,
+            cam_id=int(camera_ids[idx]),
             fid=fid,
             R=R[idx, :3, :3],
             T=T[idx, :3],

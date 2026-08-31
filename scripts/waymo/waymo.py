@@ -9,6 +9,10 @@ from waymo_open_dataset.utils.frame_utils import parse_range_image_and_camera_pr
 from waymo_open_dataset import dataset_pb2
 import tqdm
 from PIL import Image
+from utils.waymo_camera_protocol import (
+    is_validation_camera,
+    validate_camera_split,
+)
 os.environ['CUDA_VISIBLE_DEVICES'] = ""
 
 def storePly(path, xyz, rgb, t=None):
@@ -313,6 +317,7 @@ parser.add_argument("--first_frame", default=65, type=int)
 parser.add_argument("--last_frame", default=120, type=int)
 parser.add_argument("--downsample_ratio", '-r', default=1.0, type=float)
 parser.add_argument("--select_camera", default=[0], type=int, nargs='+')
+parser.add_argument("--train_cameras", default=None, type=int, nargs='+')
 parser.add_argument("--use_color", action='store_true')
 parser.add_argument("--use_depth", action='store_true')
 args = parser.parse_args()
@@ -320,6 +325,7 @@ first_frame = args.first_frame
 last_frame = args.last_frame
 dst_path = args.dst
 downsample_ratio = args.downsample_ratio
+train_camera_ids = validate_camera_split(args.select_camera, args.train_cameras)
 OPENCV2DATASET = np.array([[0, 0, 1, 0], [-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
 
 image_folder = os.path.join(dst_path, 'image')
@@ -336,6 +342,7 @@ pcd = []
 pcd_rgb = []
 time_stamps = []
 is_val_list = []
+camera_ids = []
 dataset = tf.data.TFRecordDataset(args.src, compression_type="")
 if last_frame == -1:
     last_frame = len([_ for _ in dataset]) - 1
@@ -376,7 +383,8 @@ for fid, data in enumerate(dataset):
     # for idx, (img, cam) in enumerate(zip(frame.images, frame.context.camera_calibrations)):
     for idx, img in enumerate(frame.images):
         # if idx not in args.select_camera:
-        if img.name - 1 not in args.select_camera:
+        camera_id = img.name - 1
+        if camera_id not in args.select_camera:
             continue
 
         cam = [c for c in frame.context.camera_calibrations if c.name == img.name][0]
@@ -400,7 +408,9 @@ for fid, data in enumerate(dataset):
         RT = np.linalg.inv(RT_inv)
         RTs.append(RT)
         time_stamps.append(fid - first_frame)
-        is_val_list.append(is_val)
+        camera_ids.append(camera_id)
+        camera_is_val = is_validation_camera(is_val, camera_id, train_camera_ids)
+        is_val_list.append(camera_is_val)
 
         proj_pts = (K @ (RT[:3, :3] @ points + RT[:3, 3:])).squeeze(-1)
         mask = (proj_pts[:, 2] > 0.0)
@@ -418,7 +428,7 @@ for fid, data in enumerate(dataset):
             depth_mask[proj_uv[:, 1], proj_uv[:, 0]] = True
             np.savez(os.path.join(depth_folder, '{:06d}.npz'.format(image_id)), depth=depth_map, mask=depth_mask)
 
-        if not is_val:
+        if not camera_is_val:
             mask_total = np.bitwise_or(mask, mask_total)
             if args.use_color:
                 proj_pts = torch.tensor(proj_pts, dtype=torch.float32)
@@ -465,7 +475,8 @@ np.savez(
     T = RTs[..., :3, 3],
     K = Ks,
     time_stamps = time_stamps,
-    is_val_list = is_val_list
+    is_val_list = is_val_list,
+    camera_ids = np.asarray(camera_ids, dtype=np.int64),
 )
 
 print("Get PCD:", pcd.shape)
