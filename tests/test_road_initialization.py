@@ -6,6 +6,7 @@ from models.road_initialization import (
     actor_center_samples,
     extract_road_support,
     initialize_road_chart,
+    refine_road_chart,
 )
 
 
@@ -66,6 +67,23 @@ class RoadInitializationTest(unittest.TestCase):
         self.assertTrue(bool(valid.all()))
         self.assertTrue(
             torch.allclose(height, query_xy @ slope + 1.5, atol=2e-5, rtol=0.0)
+        )
+
+    def test_huber_refinement_reduces_curved_surface_residual(self):
+        x = torch.linspace(0.0, 10.0, 21)
+        support_xy = torch.stack((x, 0.5 * torch.sin(x)), dim=1)
+        support_z = 0.02 * x.square() + 0.1 * torch.sin(x)
+        chart = initialize_road_chart(support_xy, support_z)
+        initial_z, _ = chart(support_xy)
+        initial_error = torch.mean(torch.abs(initial_z - support_z))
+
+        refine_road_chart(chart, support_xy, support_z, iterations=100)
+        fitted_z, valid = chart(support_xy)
+        fitted_error = torch.mean(torch.abs(fitted_z - support_z))
+
+        self.assertTrue(bool(valid.all()))
+        self.assertLess(
+            float(fitted_error.detach()), 0.5 * float(initial_error.detach())
         )
 
     def test_missing_local_support_fails_closed(self):

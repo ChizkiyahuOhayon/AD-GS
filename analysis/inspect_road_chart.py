@@ -18,6 +18,7 @@ from models.road_initialization import (  # noqa: E402
     actor_center_samples,
     extract_road_support,
     initialize_road_chart,
+    refine_road_chart,
 )
 
 
@@ -40,8 +41,18 @@ def inspect(point_cloud_path, min_actor_points=5):
     )
     support_xy, support_z = extract_road_support(static_xyz, query_xy)
     chart = initialize_road_chart(support_xy, support_z)
+    initial_z, initial_valid = chart(support_xy)
+    initial_residual = torch.abs(initial_z - support_z)
+    refine_road_chart(chart, support_xy, support_z)
     fitted_z, valid = chart(support_xy)
     residual = torch.abs(fitted_z - support_z)
+
+    def residual_summary(values):
+        return {
+            "median": float(torch.median(values)),
+            "p90": float(torch.quantile(values, 0.9)),
+            "max": float(torch.amax(values)),
+        }
 
     return {
         "point_cloud": str(Path(point_cloud_path).resolve()),
@@ -57,11 +68,10 @@ def inspect(point_cloud_path, min_actor_points=5):
         },
         "chart_shape": list(chart.control_heights.shape),
         "chart_valid_rate": float(valid.float().mean()),
-        "fit_abs_residual": {
-            "median": float(torch.median(residual)),
-            "p90": float(torch.quantile(residual, 0.9)),
-            "max": float(torch.amax(residual)),
-        },
+        "initial_chart_valid_rate": float(initial_valid.float().mean()),
+        "initial_abs_residual": residual_summary(initial_residual),
+        "fit_abs_residual": residual_summary(residual),
+        "fit_iterations": 200,
     }
 
 

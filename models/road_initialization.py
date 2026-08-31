@@ -1,6 +1,7 @@
 """Geometry-only initialization for the GF-DGS road chart."""
 
 import torch
+import torch.nn.functional as functional
 
 from models.road_chart import BicubicRoadChart
 
@@ -166,3 +167,38 @@ def initialize_road_chart(support_xy, support_z, knot_spacing=2.0, neighbors=8):
         int(shape_xy[1]), int(shape_xy[0])
     )
     return BicubicRoadChart(control_heights, origin, knot_spacing)
+
+
+def refine_road_chart(
+    chart,
+    support_xy,
+    support_z,
+    iterations=200,
+    learning_rate=0.05,
+    huber_delta=0.1,
+    curvature_weight=0.01,
+):
+    """Fit chart controls to static support with Huber and curvature terms."""
+    if iterations < 1 or learning_rate <= 0.0 or huber_delta <= 0.0:
+        raise ValueError("fit iterations, learning rate, and Huber delta must be positive")
+    if curvature_weight < 0.0:
+        raise ValueError("curvature_weight must be non-negative")
+
+    optimizer = torch.optim.Adam([chart.control_heights], lr=learning_rate)
+    for _ in range(iterations):
+        fitted_z, valid = chart(support_xy)
+        if not bool(valid.all()):
+            raise ValueError("all road support must lie inside the chart")
+        data_loss = functional.huber_loss(
+            fitted_z, support_z, delta=huber_delta, reduction="mean"
+        )
+        controls = chart.control_heights
+        curvature_x = controls[:, 2:] - 2.0 * controls[:, 1:-1] + controls[:, :-2]
+        curvature_y = controls[2:, :] - 2.0 * controls[1:-1, :] + controls[:-2, :]
+        curvature_loss = curvature_x.square().mean() + curvature_y.square().mean()
+        loss = data_loss + curvature_weight * curvature_loss
+
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        optimizer.step()
+    return chart
