@@ -57,6 +57,14 @@ class RoadChartTest(unittest.TestCase):
         self.assertEqual(valid.tolist(), [False, True])
         self.assertTrue(torch.isfinite(height).all())
 
+    def test_large_grid_out_of_support_queries_do_not_overflow_indices(self):
+        chart = BicubicRoadChart(torch.zeros((10, 68)), torch.zeros(2))
+
+        height, valid = chart(torch.tensor([[1e6, 1e6]]))
+
+        self.assertEqual(valid.tolist(), [False])
+        self.assertTrue(torch.isfinite(height).all())
+
     def test_state_dict_preserves_world_chart_definition(self):
         chart = BicubicRoadChart(torch.ones((5, 6)), torch.tensor([3.0, -2.0]), 1.5)
         restored = BicubicRoadChart(torch.zeros((5, 6)), torch.zeros(2), 2.0)

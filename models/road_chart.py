@@ -58,8 +58,8 @@ class BicubicRoadChart(nn.Module):
 
         safe_u = uv[..., 0].clamp(1.0, width - 2.0 - 1e-6)
         safe_v = uv[..., 1].clamp(1.0, height - 2.0 - 1e-6)
-        cell_u = torch.floor(safe_u).long()
-        cell_v = torch.floor(safe_v).long()
+        cell_u = torch.floor(safe_u).long().clamp(1, width - 3)
+        cell_v = torch.floor(safe_v).long().clamp(1, height - 3)
         weight_u = _cubic_bspline_weights(safe_u - cell_u)
         weight_v = _cubic_bspline_weights(safe_v - cell_v)
 
