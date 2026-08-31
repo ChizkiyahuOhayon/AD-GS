@@ -36,12 +36,14 @@ def project_actor_contact_to_chart(
         actor_mask = actor_ids == actor_id
         if not bool(actor_mask.any()):
             continue
-        weights = sample_weights[actor_mask]
+        weights = sample_weights[actor_mask].detach()
         total_weight = weights.sum()
-        if float(total_weight.detach()) <= 0.0:
+        if not bool(torch.isfinite(total_weight)) or float(total_weight) <= torch.finfo(
+            weights.dtype
+        ).eps:
             continue
+        weights = weights / total_weight
         center_xy = torch.sum(xyz[actor_mask, :2] * weights[:, None], dim=0)
-        center_xy = center_xy / total_weight
         road_height, valid = road_chart(center_xy[None])
         if not bool(valid.item()):
             invalid_count += 1

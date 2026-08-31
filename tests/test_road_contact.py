@@ -66,6 +66,33 @@ class RoadContactTest(unittest.TestCase):
         self.assertEqual(diagnostics["actor_count"], 0)
         self.assertEqual(diagnostics["invalid_actor_count"], 1)
 
+    def test_negligible_actor_support_is_released_without_weight_gradients(self):
+        xyz = torch.tensor(
+            [[2.0, 2.0, 1.0], [3.0, 2.0, 1.2]], requires_grad=True
+        )
+        scales = torch.full((2, 3), 0.1, requires_grad=True)
+        rotations = torch.tensor(
+            [[1.0, 0.0, 0.0, 0.0]] * 2, requires_grad=True
+        )
+        weights = torch.full((2,), 1e-30, requires_grad=True)
+        chart = BicubicRoadChart(torch.zeros((7, 7)), torch.zeros(2))
+
+        projected, diagnostics = project_actor_contact_to_chart(
+            xyz,
+            scales,
+            rotations,
+            actor_ids=torch.tensor([3, 3]),
+            active_actor_ids=torch.tensor([3]),
+            sample_weights=weights,
+            road_chart=chart,
+        )
+
+        self.assertTrue(torch.equal(projected, xyz))
+        self.assertEqual(diagnostics["actor_count"], 0)
+        projected.sum().backward()
+        self.assertIsNone(weights.grad)
+        self.assertTrue(torch.isfinite(xyz.grad).all())
+
 
 if __name__ == "__main__":
     unittest.main()
