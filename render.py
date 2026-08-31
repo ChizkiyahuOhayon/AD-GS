@@ -174,6 +174,7 @@ def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParam
             dataset.sh_degree,
             dataset.order_args,
             oracle_contact=dataset.oracle_contact,
+            gauge_fix=dataset.gauge_fix,
         )
         env_map = EnvironmentMap(**dataset.env_args)
         scene = Scene(dataset, gaussians, env_map, load_iteration=iteration, shuffle=False)

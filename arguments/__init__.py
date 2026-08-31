@@ -63,6 +63,7 @@ class ModelParams(ParamGroup):
         self.default_order_downsample_ratio = 3
         self.num_cam = 1
         self.oracle_contact = False
+        self.gauge_fix = False
 
         self.env_args = dict(
             resolution=8192,

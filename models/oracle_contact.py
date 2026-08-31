@@ -132,6 +132,7 @@ def project_actor_contact(
     zero = xyz.new_zeros(())
     diagnostics = {
         "actor_count": len(before),
+        "invalid_actor_count": 0,
         "mean_abs_before": torch.stack(before).mean() if before else zero,
         "mean_abs_after": torch.stack(after).mean() if after else zero,
     }

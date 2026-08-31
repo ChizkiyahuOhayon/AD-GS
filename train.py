@@ -37,6 +37,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
         dataset.sh_degree,
         dataset.order_args,
         oracle_contact=dataset.oracle_contact,
+        gauge_fix=dataset.gauge_fix,
     )
     env_map = EnvironmentMap(**dataset.env_args)
     scene = Scene(dataset, gaussians, env_map)
@@ -130,7 +131,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
             'sigma_loss': sigma_loss,
             'reg_loss': reg_loss,
         }
-        if dataset.oracle_contact:
+        if dataset.oracle_contact or dataset.gauge_fix:
             log_losses['contact_before'] = render_pkg['contact_mean_abs_before']
             log_losses['contact_after'] = render_pkg['contact_mean_abs_after']
 

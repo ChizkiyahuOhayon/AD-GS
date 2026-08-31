@@ -20,6 +20,7 @@ from models.road_initialization import (  # noqa: E402
     initialize_road_chart,
     refine_road_chart,
 )
+from models.oracle_contact import build_oracle_contact_tracks  # noqa: E402
 
 
 def inspect(point_cloud_path, min_actor_points=5):
@@ -36,8 +37,16 @@ def inspect(point_cloud_path, min_actor_points=5):
 
     static_xyz = xyz[actor_ids <= 0]
     dynamic = actor_ids > 0
+    stable_tracks = build_oracle_contact_tracks(
+        xyz[dynamic], times[dynamic], actor_ids[dynamic]
+    )
+    stable_actor_ids = torch.tensor(sorted(stable_tracks), dtype=torch.long)
+    stable_dynamic = dynamic & torch.isin(actor_ids, stable_actor_ids)
     query_xy = actor_center_samples(
-        xyz[dynamic], times[dynamic], actor_ids[dynamic], min_points=min_actor_points
+        xyz[stable_dynamic],
+        times[stable_dynamic],
+        actor_ids[stable_dynamic],
+        min_points=min_actor_points,
     )
     support_xy, support_z = extract_road_support(static_xyz, query_xy)
     chart = initialize_road_chart(support_xy, support_z)
@@ -58,6 +67,7 @@ def inspect(point_cloud_path, min_actor_points=5):
         "point_cloud": str(Path(point_cloud_path).resolve()),
         "static_points": int(static_xyz.shape[0]),
         "dynamic_points": int(dynamic.sum()),
+        "stable_actor_count": len(stable_tracks),
         "actor_frame_queries": int(query_xy.shape[0]),
         "supported_queries": int(support_xy.shape[0]),
         "support_rate": float(support_xy.shape[0] / query_xy.shape[0]),

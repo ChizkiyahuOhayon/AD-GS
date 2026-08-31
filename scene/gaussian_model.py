@@ -24,6 +24,14 @@ from pytorch3d.ops import knn_points
 from utils.func_utils import *
 from utils.system_utils import put_color
 from models.oracle_contact import build_oracle_contact_tracks, project_actor_contact
+from models.road_chart import BicubicRoadChart
+from models.road_contact import project_actor_contact_to_chart
+from models.road_initialization import (
+    actor_center_samples,
+    extract_road_support,
+    initialize_road_chart,
+    refine_road_chart,
+)
 
 class GaussianModel:
 
@@ -44,7 +52,9 @@ class GaussianModel:
 
         self.rotation_activation = torch.nn.functional.normalize
 
-    def __init__(self, sh_degree : int, order_args, oracle_contact=False):
+    def __init__(self, sh_degree : int, order_args, oracle_contact=False, gauge_fix=False):
+        if oracle_contact and gauge_fix:
+            raise ValueError("oracle_contact and gauge_fix are mutually exclusive")
         self.active_sh_degree = 0
         self.max_sh_degree = sh_degree
         self._scene_xyz = torch.empty(0)
@@ -86,6 +96,10 @@ class GaussianModel:
         self.frame_gap = None
         self.oracle_contact = oracle_contact
         self.oracle_contact_tracks = {}
+        self.gauge_fix = gauge_fix
+        self.road_chart = None
+        self.gauge_actor_ids = torch.empty(0, dtype=torch.long)
+        self.gauge_fix_metadata = {}
         self.last_contact_diagnostics = None
 
         self.setup_functions()
@@ -196,6 +210,74 @@ class GaussianModel:
         )
         print("Oracle contact stable actors:", len(self.oracle_contact_tracks))
 
+    def configure_gauge_fix(self, point_cloud_path):
+        vertices = PlyData.read(point_cloud_path)['vertex']
+        xyz = torch.as_tensor(
+            np.stack(
+                (np.asarray(vertices['x']), np.asarray(vertices['y']), np.asarray(vertices['z'])),
+                axis=1,
+            ).copy(),
+            dtype=torch.float32,
+        )
+        times = torch.as_tensor(np.asarray(vertices['t']).copy(), dtype=torch.float32)
+        actor_ids = torch.as_tensor(np.asarray(vertices['obj']).copy(), dtype=torch.long)
+        dynamic = actor_ids > 0
+        stable_tracks = build_oracle_contact_tracks(
+            xyz[dynamic], times[dynamic], actor_ids[dynamic]
+        )
+        if not stable_tracks:
+            raise ValueError("gauge_fix found no stable actor track")
+        stable_actor_ids = torch.tensor(sorted(stable_tracks), dtype=torch.long)
+        stable_dynamic = dynamic & torch.isin(actor_ids, stable_actor_ids)
+        query_xy = actor_center_samples(
+            xyz[stable_dynamic], times[stable_dynamic], actor_ids[stable_dynamic]
+        )
+        support_xy, support_z = extract_road_support(xyz[~dynamic], query_xy)
+        road_chart = initialize_road_chart(support_xy, support_z)
+        refine_road_chart(road_chart, support_xy, support_z)
+        road_chart.control_heights.requires_grad_(False)
+
+        self.road_chart = road_chart.cuda()
+        self.gauge_actor_ids = stable_actor_ids.cuda()
+        self.gauge_fix_metadata = {
+            "actor_count": len(stable_tracks),
+            "actor_frame_queries": int(query_xy.shape[0]),
+            "supported_queries": int(support_xy.shape[0]),
+        }
+        print(
+            "GF-DGS road chart:",
+            "actors", self.gauge_fix_metadata["actor_count"],
+            "support", "{}/{}".format(
+                self.gauge_fix_metadata["supported_queries"],
+                self.gauge_fix_metadata["actor_frame_queries"],
+            ),
+            "grid", tuple(self.road_chart.control_heights.shape),
+        )
+
+    def save_gauge_fix(self, path):
+        if self.road_chart is None:
+            raise RuntimeError("gauge_fix road chart is not configured")
+        torch.save(
+            {
+                "control_heights": self.road_chart.control_heights.detach().cpu(),
+                "origin_xy": self.road_chart.origin_xy.detach().cpu(),
+                "knot_spacing": float(self.road_chart.knot_spacing.detach().cpu()),
+                "actor_ids": self.gauge_actor_ids.detach().cpu(),
+                "metadata": self.gauge_fix_metadata,
+            },
+            path,
+        )
+
+    def load_gauge_fix(self, path):
+        state = torch.load(path, map_location="cpu")
+        road_chart = BicubicRoadChart(
+            state["control_heights"], state["origin_xy"], state["knot_spacing"]
+        )
+        road_chart.control_heights.requires_grad_(False)
+        self.road_chart = road_chart.cuda()
+        self.gauge_actor_ids = state["actor_ids"].long().cuda()
+        self.gauge_fix_metadata = state.get("metadata", {})
+
     def _get_deformed_xyz_and_contact(self, t):
         obj_xyz = self.get_obj_xyz
 
@@ -209,10 +291,28 @@ class GaussianModel:
 
         diagnostics = {
             'actor_count': 0,
+            'invalid_actor_count': 0,
             'mean_abs_before': obj_xyz.new_zeros(()),
             'mean_abs_after': obj_xyz.new_zeros(()),
         }
-        if self.oracle_contact:
+        if self.gauge_fix:
+            obj_rotation = self.get_deformed_rotation(t)[self.get_scene_pts_num:]
+            if self.use_time_mask:
+                sample_weights = self.get_time_masked_opacity(t)[
+                    self.get_scene_pts_num:, 0
+                ]
+            else:
+                sample_weights = self.get_obj_opacity[:, 0]
+            obj_xyz, diagnostics = project_actor_contact_to_chart(
+                obj_xyz,
+                self.get_obj_scaling,
+                obj_rotation,
+                self.get_obj_actor_id,
+                self.gauge_actor_ids,
+                sample_weights,
+                self.road_chart,
+            )
+        elif self.oracle_contact:
             obj_rotation = self.get_deformed_rotation(t)[self.get_scene_pts_num:]
             obj_xyz, diagnostics = project_actor_contact(
                 obj_xyz,
@@ -275,6 +375,7 @@ class GaussianModel:
             'shs': shs,
             'opacity': opacity,
             'contact_actor_count': contact['actor_count'],
+            'contact_invalid_actor_count': contact['invalid_actor_count'],
             'contact_mean_abs_before': contact['mean_abs_before'],
             'contact_mean_abs_after': contact['mean_abs_after'],
         }
@@ -515,6 +616,8 @@ class GaussianModel:
             self.order_args,
             self.scene_extent,
         ), os.path.join(os.path.dirname(path), "deform.pth"))
+        if self.gauge_fix:
+            self.save_gauge_fix(os.path.join(os.path.dirname(path), "gauge_fix.pth"))
 
     def reset_opacity(self):
         scene_opacities_new = inverse_sigmoid(torch.min(self.get_scene_opacity, torch.ones_like(self.get_scene_opacity) * 0.01))
@@ -605,6 +708,8 @@ class GaussianModel:
         self.gs_time_sigma = nn.Parameter(gs_time_sigma.requires_grad_(True))
 
         self.active_sh_degree = self.max_sh_degree
+        if self.gauge_fix:
+            self.load_gauge_fix(os.path.join(os.path.dirname(path), "gauge_fix.pth"))
         
     def replace_tensor_to_optimizer(self, tensor, name):
         optimizable_tensors = {}
