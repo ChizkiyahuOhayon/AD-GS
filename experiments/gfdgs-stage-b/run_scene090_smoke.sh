@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ "$#" -ne 3 ]; then
-    printf 'usage: %s SOURCE_DIR OUTPUT_ROOT EVIDENCE_ROOT\n' "$0" >&2
+if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
+    printf 'usage: %s SOURCE_DIR OUTPUT_ROOT EVIDENCE_ROOT [baseline|gfdgs|both]\n' "$0" >&2
     exit 2
 fi
 
@@ -10,6 +10,7 @@ repo=$(cd "$(dirname "$0")/../.." && pwd)
 source_dir=$1
 output_root=$2
 evidence_root=$3
+arm=${4:-both}
 python=${PYTHON:-python}
 commit=$(git -C "$repo" rev-parse --short=7 HEAD)
 
@@ -72,5 +73,12 @@ run_arm() {
     return "$render_exit"
 }
 
-run_arm baseline arguments/waymo.py
-run_arm gfdgs arguments/waymo_gfdgs.py
+case "$arm" in
+    baseline) run_arm baseline arguments/waymo.py ;;
+    gfdgs) run_arm gfdgs arguments/waymo_gfdgs.py ;;
+    both)
+        run_arm baseline arguments/waymo.py
+        run_arm gfdgs arguments/waymo_gfdgs.py
+        ;;
+    *) printf 'unknown arm: %s\n' "$arm" >&2; exit 2 ;;
+esac
