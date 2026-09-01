@@ -60,7 +60,7 @@ awk '
 
 "$python" -m pip check | tee "$evidence_dir/a40-pip-check.txt"
 "$python" -m pip freeze --all > "$evidence_dir/a40-pip-freeze.txt"
-"$python" -c 'import diff_gaussian_rasterization, numpy, pytorch3d, roma, simple_knn, torch; print(torch.__version__, torch.version.cuda, numpy.__version__, pytorch3d.__version__, roma.__version__)' \
+"$python" -c 'import importlib.metadata as m; import diff_gaussian_rasterization, numpy, pytorch3d, roma, simple_knn, torch; print(torch.__version__, torch.version.cuda, numpy.__version__, pytorch3d.__version__, m.version("roma"))' \
     | tee "$evidence_dir/a40-imports.txt"
 sha256sum \
     "$runtime_lock" \
