@@ -43,3 +43,15 @@ Build the environment from the repository on A40 with CUDA 11.8 and `TORCH_CUDA_
 - full CPU test suite passing and CUDA lifecycle tests passing.
 
 Only then run the locked `scene090` baseline versus scheduled-contact 1k pair from `scheduled-contact.md`.
+
+Generate the environment receipt with:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 /path/to/adgs/bin/python \
+  scripts/server/verify_a40_environment.py \
+  --repo "$PWD" \
+  --expected-commit "$(git rev-parse HEAD)" \
+  --output /path/to/evidence/a40-environment.json
+```
+
+This invokes real CUDA kernels from simple-knn, the differentiable rasterizer, and PyTorch3D rather than accepting imports alone.
