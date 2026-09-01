@@ -36,7 +36,7 @@ Both commands must exit zero. Matching receipts prove equal per-modality file co
 
 Build the environment from the repository on A40 with CUDA 11.8 and `TORCH_CUDA_ARCH_LIST=8.6`. Before training, require:
 
-- repository commit `9268b38f356fd975b4ee8a9752da885130f2ddac`;
+- repository HEAD contains environment implementation commit `9268b38f356fd975b4ee8a9752da885130f2ddac` as an ancestor, and the exact experimental HEAD is recorded by the verifier;
 - clean tracked worktree;
 - successful PyTorch CUDA allocation on the selected A40;
 - successful imports of both custom rasterization extensions;
