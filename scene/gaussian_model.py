@@ -100,6 +100,7 @@ class GaussianModel:
         self.road_chart = None
         self.gauge_actor_ids = torch.empty(0, dtype=torch.long)
         self.gauge_fix_metadata = {}
+        self.gauge_fix_strength = 1.0
         self.last_contact_diagnostics = None
 
         self.setup_functions()
@@ -278,6 +279,12 @@ class GaussianModel:
         self.gauge_actor_ids = state["actor_ids"].long().cuda()
         self.gauge_fix_metadata = state.get("metadata", {})
 
+    def set_gauge_fix_strength(self, strength):
+        strength = float(strength)
+        if not 0.0 <= strength <= 1.0:
+            raise ValueError("gauge_fix_strength must be in [0, 1]")
+        self.gauge_fix_strength = strength
+
     def _get_deformed_xyz_and_contact(self, t):
         obj_xyz = self.get_obj_xyz
 
@@ -295,7 +302,7 @@ class GaussianModel:
             'mean_abs_before': obj_xyz.new_zeros(()),
             'mean_abs_after': obj_xyz.new_zeros(()),
         }
-        if self.gauge_fix:
+        if self.gauge_fix and self.gauge_fix_strength > 0.0:
             obj_rotation = self.get_deformed_rotation(t)[self.get_scene_pts_num:]
             if self.use_time_mask:
                 sample_weights = self.get_time_masked_opacity(t)[
@@ -303,7 +310,7 @@ class GaussianModel:
                 ]
             else:
                 sample_weights = self.get_obj_opacity[:, 0]
-            obj_xyz, diagnostics = project_actor_contact_to_chart(
+            projected_obj_xyz, diagnostics = project_actor_contact_to_chart(
                 obj_xyz,
                 self.get_obj_scaling,
                 obj_rotation,
@@ -311,6 +318,10 @@ class GaussianModel:
                 self.gauge_actor_ids,
                 sample_weights,
                 self.road_chart,
+            )
+            obj_xyz = torch.lerp(obj_xyz, projected_obj_xyz, self.gauge_fix_strength)
+            diagnostics['mean_abs_after'] = diagnostics['mean_abs_before'] * (
+                1.0 - self.gauge_fix_strength
             )
         elif self.oracle_contact:
             obj_rotation = self.get_deformed_rotation(t)[self.get_scene_pts_num:]
@@ -378,6 +389,7 @@ class GaussianModel:
             'contact_invalid_actor_count': contact['invalid_actor_count'],
             'contact_mean_abs_before': contact['mean_abs_before'],
             'contact_mean_abs_after': contact['mean_abs_after'],
+            'contact_strength': self.gauge_fix_strength if self.gauge_fix else 0.0,
         }
     
     def get_flow_proj(self, flow_pkg, dist=None):

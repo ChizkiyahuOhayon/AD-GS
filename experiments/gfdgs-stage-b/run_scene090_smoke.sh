@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
-    printf 'usage: %s SOURCE_DIR OUTPUT_ROOT EVIDENCE_ROOT [baseline|gfdgs|both]\n' "$0" >&2
+    printf 'usage: %s SOURCE_DIR OUTPUT_ROOT EVIDENCE_ROOT [baseline|gfdgs|scheduled|both|scheduled-pair]\n' "$0" >&2
     exit 2
 fi
 
@@ -76,6 +76,11 @@ run_arm() {
 case "$arm" in
     baseline) run_arm baseline arguments/waymo.py ;;
     gfdgs) run_arm gfdgs arguments/waymo_gfdgs.py ;;
+    scheduled) run_arm gfdgs-scheduled arguments/waymo_gfdgs_scheduled.py ;;
+    scheduled-pair)
+        run_arm baseline arguments/waymo.py
+        run_arm gfdgs-scheduled arguments/waymo_gfdgs_scheduled.py
+        ;;
     both)
         run_arm baseline arguments/waymo.py
         run_arm gfdgs arguments/waymo_gfdgs.py

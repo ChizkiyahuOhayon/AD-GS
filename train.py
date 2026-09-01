@@ -28,6 +28,7 @@ from arguments import ModelParams, PipelineParams, OptimizationParams, get_confi
 from scene.env import EnvironmentMap
 from scene.cameras import Camera
 from torch.utils.tensorboard import SummaryWriter
+from models.contact_schedule import linear_contact_strength
 
 def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_from):
     first_iter = 0
@@ -51,6 +52,15 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
     first_iter += 1
     for iteration in range(first_iter, opt.iterations + 1):
         gaussians.update_learning_rate(iteration)
+        if dataset.gauge_fix:
+            gaussians.set_gauge_fix_strength(
+                linear_contact_strength(
+                    iteration,
+                    opt.iterations,
+                    opt.gauge_fix_warmup_fraction,
+                    opt.gauge_fix_ramp_fraction,
+                )
+            )
 
         # Every 1000 its we increase the levels of SH up to a maximum degree
         if iteration % 1000 == 0:
@@ -134,15 +144,20 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
         if dataset.oracle_contact or dataset.gauge_fix:
             log_losses['contact_before'] = render_pkg['contact_mean_abs_before']
             log_losses['contact_after'] = render_pkg['contact_mean_abs_after']
+        if dataset.gauge_fix:
+            log_losses['contact_strength'] = render_pkg['contact_strength']
 
         with torch.no_grad():
             # Progress bar
             ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
             if iteration % 10 == 0:
-                progress_bar.set_postfix({
+                progress = {
                     "Loss": f"{ema_loss_for_log:.{5}f}",
                     "pts": gaussians.get_pts_num,
-                })
+                }
+                if dataset.gauge_fix:
+                    progress["contact"] = f"{gaussians.gauge_fix_strength:.2f}"
+                progress_bar.set_postfix(progress)
                 progress_bar.update(10)
             if iteration == opt.iterations:
                 progress_bar.close()

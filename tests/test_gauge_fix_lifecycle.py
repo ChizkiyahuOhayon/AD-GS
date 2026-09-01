@@ -53,6 +53,18 @@ class GaugeFixLifecycleTest(unittest.TestCase):
         model.gauge_actor_ids = torch.tensor([7], device="cuda")
         model.gauge_fix_metadata = {"actor_count": 1}
 
+        model.set_gauge_fix_strength(0.0)
+        free_xyz = model.get_deformed_xyz(0.5)
+        model.set_gauge_fix_strength(1.0)
+        contact_xyz = model.get_deformed_xyz(0.5)
+        model.set_gauge_fix_strength(0.5)
+        blended_xyz = model.get_deformed_xyz(0.5)
+        self.assertTrue(
+            torch.allclose(blended_xyz, torch.lerp(free_xyz, contact_xyz, 0.5))
+        )
+        with self.assertRaises(ValueError):
+            model.set_gauge_fix_strength(1.1)
+
         with tempfile.TemporaryDirectory() as directory:
             checkpoint_path = directory + "/point_cloud.ply"
             model.save_ply(checkpoint_path)
@@ -72,6 +84,7 @@ class GaugeFixLifecycleTest(unittest.TestCase):
         self.assertTrue(torch.equal(restored.gauge_actor_ids, model.gauge_actor_ids))
         self.assertEqual(restored.gauge_fix_metadata, model.gauge_fix_metadata)
         self.assertFalse(restored.road_chart.control_heights.requires_grad)
+        self.assertEqual(restored.gauge_fix_strength, 1.0)
 
 
 if __name__ == "__main__":

@@ -133,6 +133,8 @@ class OptimizationParams(ParamGroup):
         self.lambda_sigma = 0.01
         self.lambda_reg = 0.5
         self.lambda_sigma_reg = 0.5
+        self.gauge_fix_warmup_fraction = 0.0
+        self.gauge_fix_ramp_fraction = 0.0
 
         super().__init__(parser, config, "Optimization Parameters")
 
