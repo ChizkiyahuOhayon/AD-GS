@@ -55,3 +55,15 @@ CUDA_VISIBLE_DEVICES=0 /path/to/adgs/bin/python \
 ```
 
 This invokes real CUDA kernels from simple-knn, the differentiable rasterizer, and PyTorch3D rather than accepting imports alone.
+
+Build the locked environment from the transferred source receipt:
+
+```bash
+bash scripts/server/install_a40_environment.sh \
+  /home/smbu/anaconda3/envs/adgs-gfdgs \
+  "$PWD" \
+  /home/smbu/dy/nas/adgs-gfdgs/evidence/a40-migration/source-environment \
+  /home/smbu/dy/nas/adgs-gfdgs/evidence/a40-migration/a40-environment
+```
+
+The installer uses the verified source dependency closure, removes stale CUDA 12 wheels, installs the official PyTorch 2.0.1 CUDA 11.8 and PyTorch3D 0.7.4 wheels, and rebuilds both local CUDA extensions only for A40 architecture `sm_86`. The separate environment verifier remains the required runtime gate.
